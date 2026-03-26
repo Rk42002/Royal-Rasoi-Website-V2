@@ -423,7 +423,7 @@
   <div class="wrap">
     <header>
       <h1>Food image edit — prompt builder</h1>
-      <p>Walk through each step, then generate a detailed prompt for <strong>Gemini</strong> (and other editors) with framing, background presets + optional tailoring, and strict food-integrity rules.</p>
+      <p>Walk through each step, then generate a detailed prompt for <strong>Gemini</strong> (and other editors). Defaults target a <strong>snapshot → pro studio shoot</strong> lift — art-directed surface, soft directional light, breathing room around the dish, tactile detail, and strong perceived quality from modest-resolution sources. Use Step 4’s <strong>reference style</strong> upload to pin a benchmark look (e.g. dark slate, campaign lighting).</p>
     </header>
 
     <div class="progress" id="progress" aria-hidden="true"></div>
@@ -806,7 +806,7 @@
   const READINESS_PROMPT =
     "You advise on food/restaurant photo editing workflows. The user generated a long MASTER PROMPT for an AI image editor (Gemini-class). " +
     "They may attach the BASE food photo for visual context.\n\n" +
-    "Evaluate how READY they are to run this edit successfully. Consider: framing/working distance (macro-tight vs commercial margin), commercial studio finish vs snapshot look, background clutter vs anti-clutter instructions, " +
+    "Evaluate how READY they are to run this edit successfully. Consider: framing/working distance (macro-tight vs commercial margin), whether the prompt demands pro studio transformation tier vs leaving a casual snapshot, commercial studio finish vs snapshot look, background clutter vs anti-clutter instructions, " +
     "possible contradictions (e.g. keep restaurant vs simplify), festive density, output aspect ratio, food-integrity rules, output clarity/sharpness vs soft or low-res sources, and missing details.\n\n" +
     "Respond in EXACTLY this Markdown structure (use the headings):\n\n" +
     "## Overall readiness (1–10)\n" +
@@ -1172,7 +1172,9 @@ ${tailoringInstructions}`;
       `Treat the following as ground truth for what must NOT be reinvented:\n${foodDesc}\n\n` +
       "The food itself — every grain, leaf, bubble, char mark, and sauce edge visible in the base image — must remain the same real dish. " +
       "Do not regenerate, re-draw, substitute, or “beautify” the food into a different meal. No plastic gloss, no hyper-smooth sauces, no fake symmetry. " +
-      "You may adjust only global scene treatments (background, props, lighting, grading) around the food unless an enhancement explicitly allows a garnish/steam/sauce touch-up that stays physically believable.";
+      "PLATE LAYOUT: If pieces are jammed in an unreadable clump (e.g. protein touching in a tight stack), you may add subtle professional spacing between the SAME items — same count, marinade, char, and identity — small believable gaps for hero legibility only, not a new arrangement of different food. " +
+      "You may adjust global scene treatments (background, props, lighting, grading) around the food; optional restrained hero styling (small chutney bowl, scattered microgreens in negative space) is allowed when it matches cuisine and TARGET TRANSFORMATION STANDARD. " +
+      "WATERMARKS: Remove phone/camera “shot on…” watermarks and UI overlays from the final unless ADDITIONAL explicitly asks to keep them.";
 
     const refLine = refFile
       ? "A separate REFERENCE IMAGE is supplied: match its overall styling direction — palette, surface materials, and mood — while keeping the food identity locked to the BASE IMAGE. If the reference itself looks overcrowded, borrow mood and color, NOT prop count — stay sparser than the reference when in doubt. Do not copy unrelated dishes."
@@ -1210,6 +1212,19 @@ Unless USER TAILORING or ADDITIONAL explicitly demands a raw, documentary look, 
 4. One coherent world: surface, props, and dish share the same lighting logic and finish quality.
 5. Always suitable for brand, delivery, or paid social — campaign-minded polish is the default.`;
 
+    const targetTransformationStandard = `=== TARGET TRANSFORMATION STANDARD (ALL DELIVERABLES) ===
+Every output should match the quality tier of a strong “casual base photo → pro studio campaign” transformation — the default bar, not an optional upgrade.
+
+INTENT (typical jump):
+• FROM: flat or harsh phone/overhead snap energy, busy casual table (e.g. patterned placemat, stray plates), tight snapshot framing, noise or softness, possible device watermark.  
+• TO: art-directed dark or neutral textured surface (slate, stone, linen, seamless sweep), soft directional key light (often ~10:30) with gentle shadow falloff and depth, tactile detail preserved or recovered (char, moisture, salt, onion threads, ribbed plate texture), appetite-led speculars — not blown highlights. Optional restrained props in negative space (small chutney bowl, lemon/salt pinch, scattered microgreens or seeds) that fit the cuisine — curated, not cluttered.
+
+VISUAL LANGUAGE: lean into real materials — matte vs glossy, craggy stone or weave, ribbed ceramics — never waxy uniformity or “AI sheen.”
+
+LOW-RES BASES: The “TO” state must still read publication-ready at OUTPUT dimensions — lean hard on OUTPUT CLARITY (upscale-aware recovery) so quality feels like your best pro shot, not a mushy enlargement.
+
+REFERENCE IMAGE: If a REFERENCE STYLE image is attached, treat it as the quality and mood benchmark (lighting ratio, surface darkness/texture, prop restraint) while keeping food identity from the BASE image.`;
+
     const standing = `=== STANDING QUALITY BAR (ALWAYS APPLY) ===
 
 1. Photoreal food only: no illustration, CGI plastic, wax shine, or “AI sheen.”
@@ -1222,7 +1237,8 @@ Unless USER TAILORING or ADDITIONAL explicitly demands a raw, documentary look, 
 8. Ad-readable backgrounds: avoid cluttered, wall-to-wall busyness; background must not compete with the dish (see COMPOSITION section above).
 9. If the uploaded photo is already overcrowded, simplify the scene — do not “preserve clutter” as if it were sacred.
 10. Clarity at output size: deliver a clear, legible result at the stated dimensions; if the source is low-res, upscale and refine intelligently — sharp where it should be sharp, never a blurry or watercolor mush (see OUTPUT CLARITY section).
-11. Commercial studio finish: art-directed surface and light — not a thoughtless phone snapshot (see COMMERCIAL & STUDIO FINISH section).`;
+11. Commercial studio finish: art-directed surface and light — not a thoughtless phone snapshot (see COMMERCIAL & STUDIO FINISH section).
+12. Target transformation tier: deliver at least the “pro studio campaign” standard in TARGET TRANSFORMATION STANDARD — including from modest-resolution sources when clarity rules are applied.`;
 
     const negatives = `=== NEGATIVE CONSTRAINTS (DO NOT) ===
 
@@ -1236,14 +1252,18 @@ Unless USER TAILORING or ADDITIONAL explicitly demands a raw, documentary look, 
 - Do NOT deliver a uniformly soft, mushy, or watercolor-blurred final image when plausible clarity and texture recovery would better serve the ad — especially for low-res sources.
 - Do NOT apply heavy global sharpening that creates halos, crunchy edges, or obvious “AI sharpen” artifacts.
 - Do NOT deliver an extreme macro crop or multi-edge cropped plate rim when FRAMING calls for commercial or balanced distance — open up the shot.
-- Do NOT leave a flat, accidental snapshot background and lighting when the brief implies polished commercial food work — unless the user explicitly asked for unstyled realism.`;
+- Do NOT leave a flat, accidental snapshot background and lighting when the brief implies polished commercial food work — unless the user explicitly asked for unstyled realism.
+- Do NOT leave phone/camera watermarks or “shot on…” branding in the final unless explicitly requested.
+- Do NOT output a result that feels like an unimproved snapshot when the brief implies studio-tier polish — meet TARGET TRANSFORMATION STANDARD.`;
 
     const checklist = `=== MODEL CHECKLIST (VERIFY BEFORE FINALIZING) ===
 
 ☐ Food pixels: same meal, same plating logic as base — not a newly generated dish.
 ☐ Framing: matches "${frameName}" intent; full vessel readable; comfortable margins — not macro-claustrophobic.
 ☐ Studio finish: background/surface and lighting read art-directed / campaign-grade (unless user asked for raw realism).
-☐ Clarity: at ${dim.w}×${dim.h} px the hero reads sharp and clear enough for mobile/thumbnail; no mushy upscale; no halo sharpening.
+☐ Transformation tier: reads like pro studio food work (directional soft light, textured/controlled surface, tactile food detail) per TARGET TRANSFORMATION STANDARD — not the casual base left unlifted.
+☐ Clarity: at ${dim.w}×${dim.h} px the hero reads sharp and clear enough for mobile/thumbnail; no mushy upscale; no halo sharpening (low-res bases still deliver premium perceived quality).
+☐ No stray watermarks unless user asked to keep them.
 ☐ Clutter: background is calmer and more readable than a chaotic snapshot; hero dish clearly dominates.
 ☐ Background: preset + COMPOSITION rules + USER TAILORING merged without contradictions.
 ☐ Lighting: consistent; matches selected lighting mood.
@@ -1260,7 +1280,7 @@ Unless USER TAILORING or ADDITIONAL explicitly demands a raw, documentary look, 
 4. Request output at ${dim.w}×${dim.h} px (or closest supported size), aspect ${aspectLabel(dim.w, dim.h)}.
 
 --- ROLE ---
-You are a senior food photographer and retoucher. Your task is to EDIT the supplied base photograph into a campaign-ready frame while preserving the real food as captured. You prioritize realism, appetite appeal, brand-safe composition, COMMERCIAL working distance (not macro phone-tight), a CLEAR final image at the target resolution (including when the source is slightly low-res), and a STUDIO-GRADE art-directed surface and lighting finish — never an accidental snapshot. You actively avoid cluttered, ad-unfriendly backgrounds: simplify busy scenes unless the user explicitly wants maximal set-dressing.
+You are a senior food photographer and retoucher. Your task is to EDIT the supplied base photograph into a campaign-ready frame while preserving the real food as captured — with the default quality bar of a full “snapshot → pro studio shoot” lift (dark/neutral textured surfaces, soft directional light, tactile detail, publication-ready clarity even from modest-resolution phones unless the user requests raw realism). You prioritize realism, appetite appeal, brand-safe composition, COMMERCIAL working distance (not macro phone-tight), CLEAR output at the target resolution, and STUDIO-GRADE finish — never an accidental snapshot. You actively avoid cluttered, ad-unfriendly backgrounds: simplify busy scenes unless the user explicitly wants maximal set-dressing.
 
 --- OUTPUT SPECS ---
 PIXEL SIZE: ${dim.w} × ${dim.h} px
@@ -1279,6 +1299,8 @@ ${framingInstruction(framing)}
 Implementation notes: If OUTPUT DIMENSIONS differ from the base aspect ratio, letterbox or crop intelligently — prioritize the hero dish; never squish or stretch unnaturally. When in doubt, preserve appetite appeal and horizon/plate geometry.
 
 ${commercialStudioFinish}
+
+${targetTransformationStandard}
 
 ${compositionClutter}
 
@@ -1313,7 +1335,7 @@ ${standing}
 ${checklist}
 
 --- LEGACY SHORT HEADER (optional paste-in helpers) ---
-OUTPUT: ${dim.w}×${dim.h} px · ${dim.label} · Frame: ${frameName} · Style: ${vibeName} · Commercial studio finish + balanced distance (mandatory unless user requested raw realism)`;
+OUTPUT: ${dim.w}×${dim.h} px · ${dim.label} · Frame: ${frameName} · Style: ${vibeName} · Pro studio transformation tier + balanced distance (mandatory unless user requested raw realism)`;
 
     document.getElementById("out").textContent = text;
   }
