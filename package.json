@@ -3,13 +3,10 @@
   "private": true,
   "description": "Static prompt builder for food image editing — served for Railway / local preview",
   "scripts": {
-    "start": "serve . -l tcp://0.0.0.0:${PORT:-3000}",
-    "dev": "serve . -l 3000"
+    "start": "node server.js",
+    "dev": "PORT=3000 node server.js"
   },
   "engines": {
     "node": ">=18"
-  },
-  "dependencies": {
-    "serve": "^14.2.4"
   }
 }

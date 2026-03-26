@@ -6,8 +6,10 @@ A small browser-based wizard that builds **detailed, Gemini-friendly prompts** f
 
 | File | Purpose |
 |------|--------|
-| `food-image-edit-prompt.html` | Open in a browser: step-through form → copy/download the generated prompt |
-| `food-image-edit-workflow.md` | Full workflow text for AI assistants building the same kind of prompts in chat |
+| `food-image-edit-prompt.html` | Step-through form → copy/download the generated prompt |
+| `server.js` | Static HTTP server for Railway / `npm start` |
+| `index.html` | Redirects `/` → prompt builder |
+| `food-image-edit-workflow.md` | Markdown spec for a conversational prompt-engineer workflow |
 
 ## Usage
 
@@ -22,16 +24,21 @@ Optional **Google AI Studio** API key (stored only in your browser): auto-descri
 
 ## Deploy on Railway
 
-This repo is a **static site** served with [`serve`](https://github.com/vercel/serve) so Railway can bind `PORT` like any Node app.
+The app is served by **`server.js`** (plain Node, no extra deps). Railway sets **`PORT`**; the server listens on **`0.0.0.0`**.
 
-1. Push this repo to GitHub (already set up for most users).
-2. In [Railway](https://railway.app): **New project** → **Deploy from GitHub repo** → select `Food-Image-prompt-generation-tool`.
-3. Railway will detect `package.json` and run **`npm install`** then **`npm start`**.
-4. Open the generated **public URL** — you should land on the prompt builder (`index.html` redirects to `food-image-edit-prompt.html`).
+1. Push this repo to GitHub.
+2. In [Railway](https://railway.app): **New project** → **Deploy from GitHub repo** → select **`Food-Image-prompt-generation-tool`**.
+3. Railway runs **`npm install`** (lockfile is optional) then **`npm start`** → **`node server.js`**.
+4. In the service → **Settings** → **Networking** → **Generate domain** (or add a custom domain). Open that **HTTPS** URL — root loads **`index.html`**, which sends you to **`food-image-edit-prompt.html`**.
 
-**Gemini API from the browser:** Your key stays in the visitor’s browser (`localStorage`). Ensure your Railway URL uses **HTTPS** (Railway provides this by default). If `fetch` to Google fails, check API key restrictions in Google AI Studio (HTTP referrer / domain allowlist) and allow your Railway domain.
+**If the link doesn’t load**
+- Confirm the latest commit is deployed (**Redeploy** after push).
+- Ensure a **public domain** is generated (private/internal URLs won’t open in your browser).
+- Check **Deploy logs** for crashes (e.g. wrong root directory — root should be the repo root where `server.js` lives).
 
-Local preview: `npm install` then `npm start` (or `npm run dev` on port 3000).
+**Gemini API in production:** Keys stay in the browser (`localStorage`). If API calls fail on your Railway domain, add that origin under API key restrictions in [Google AI Studio](https://aistudio.google.com/apikey).
+
+**Local preview:** `npm start` (uses port **3000** when `PORT` is unset) or `PORT=8080 npm start`.
 
 ## License
 
