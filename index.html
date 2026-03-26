@@ -415,6 +415,10 @@
       font-size: 0.8rem;
     }
     .footer-bottom a { color: var(--gold); text-decoration: none; }
+    .footer-legal {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .footer-legal-sep { color: rgba(255,255,255,0.25); user-select: none; }
 
     /* ===== ANIMATIONS ===== */
     @keyframes fadeUp {
@@ -593,14 +597,10 @@
       <h2 class="section-title">Bringing Kerala's<br/>Soul to Your Plate</h2>
       <p class="section-desc">
         At Royal Rasoi, we serve the rich culinary heritage of Kerala — from the iconic 
-        unlimited Sadhya on fresh banana leaves every afternoon, to crispy Karimeen Pollichathu 
+        Sadhya on fresh banana leaves every afternoon, to crispy Karimeen Pollichathu 
         and silky Appam with stew. Every dish is crafted with authentic recipes and traditional spices.
       </p>
       <div class="about-highlights">
-        <div class="highlight-pill">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-          Unlimited Sadhya
-        </div>
         <div class="highlight-pill">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
           Banana Leaf Dining
@@ -729,7 +729,7 @@
             <div class="contact-value">+91 92233 16655</div>
           </div>
         </a>
-        <a class="contact-item" href="https://maps.app.goo.gl/YourMapsLinkHere" target="_blank" rel="noopener">
+        <a class="contact-item" href="https://www.google.com/maps/dir/?api=1&amp;destination=19.0303541%2C73.0644738" target="_blank" rel="noopener">
           <div class="contact-icon" style="background:#FFF3E0;">
             <svg fill="none" stroke="#E65100" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
           </div>
@@ -752,7 +752,7 @@
     <div>
       <div class="map-embed">
         <iframe
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3772.0!2d73.0644738!3d19.0303541!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7c3b4b4b4b4b4%3A0x0!2sRoyal+Rasoi%2C+Sector+2%2C+Kharghar%2C+Navi+Mumbai!5e0!3m2!1sen!2sin!4v1234567890"
+          src="https://maps.google.com/maps?q=19.0303541%2C73.0644738&amp;z=17&amp;hl=en&amp;output=embed"
           allowfullscreen=""
           loading="lazy"
           referrerpolicy="no-referrer-when-downgrade"
@@ -838,12 +838,17 @@
         <ul>
           <li><a href="tel:+919223316655">+91 92233 16655</a></li>
           <li><a href="https://www.instagram.com/royalrasoi/" target="_blank" rel="noopener">@royalrasoi</a></li>
-          <li><a href="https://maps.app.goo.gl/YourMapsLinkHere" target="_blank" rel="noopener">Get Directions</a></li>
+          <li><a href="https://www.google.com/maps/dir/?api=1&amp;destination=19.0303541%2C73.0644738" target="_blank" rel="noopener">Get Directions</a></li>
         </ul>
       </div>
     </div>
     <div class="footer-bottom">
       <span>© 2025 Royal Rasoi. All rights reserved.</span>
+      <span class="footer-legal">
+        <a href="terms.html">Terms &amp; Conditions</a>
+        <span class="footer-legal-sep" aria-hidden="true">·</span>
+        <a href="privacy.html">Privacy Policy</a>
+      </span>
       <span>Sector 2, Kharghar, Navi Mumbai – 410210</span>
     </div>
   </div>
