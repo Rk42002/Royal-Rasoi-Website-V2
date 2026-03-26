@@ -692,22 +692,56 @@
   }
 
   function framingInstruction(id) {
-    const antiMacro =
-      " If the BASE image is an extreme close-up (plate edges cropped, food fills the entire frame, smartphone macro look), you MUST reframe to a healthier working distance — show the full vessel with clear margin on all sides unless USER TAILORING explicitly demands a macro crop.";
+    const zoomOutBlock =
+      "\n\n*** ZOOM-OUT HARD RULE (MANDATORY -- READ BEFORE GENERATING) ***\n" +
+      "AI image models have a STRONG bias toward filling the frame with food. You MUST actively fight this.\n\n" +
+      "SELF-CHECK -- run these 4 tests BEFORE finalizing:\n" +
+      "  1. PLATE RIM TEST: Can you see the ENTIRE plate/bowl rim on ALL FOUR sides with ZERO cropping? If any rim is cut off or touching the edge -> ZOOM OUT MORE.\n" +
+      "  2. MARGIN TEST: Is there visible table/surface/background around the plate on EVERY side -- at MINIMUM 15-20% of the frame width as margin? If not -> ZOOM OUT MORE.\n" +
+      "  3. PHONE-DISTANCE TEST: Does it look like a phone held 15cm from the food? If yes -> ZOOM OUT. It should look like a camera at 50-80cm.\n" +
+      "  4. HEADLINE TEST: Could a designer place a headline in the negative space WITHOUT overlapping food? If not -> ZOOM OUT MORE.\n\n" +
+      "Mental model: the plate is an object ON a surface. You are photographing the SCENE -- not performing macro surgery on the food.\n" +
+      "The #1 most common failure is making the image TOO ZOOMED IN. When in doubt, ALWAYS choose MORE distance, MORE breathing room, MORE visible surface.\n" +
+      "If you think you have enough room -- add 10-15% more. Seriously.\n" +
+      "***";
+
     const map = {
       commercial:
-        "FRAMING — BALANCED COMMERCIAL / STUDIO DISTANCE: Target professional ad photography working distance. The entire hero plate/bowl and its immediate garnish layout must be comfortably inside the frame with visible breathing room (negative space) around it — roughly ~55–70% of frame on the dish+plate, remainder calm surface/background. " +
-        "Forbidden: toy-camera macro where rims are cut off on multiple edges or the dish feels claustrophobic. " +
-        antiMacro,
+        "FRAMING -- BALANCED COMMERCIAL / STUDIO DISTANCE (DEFAULT):\n\n" +
+        "Simulate a professional food photographer at a natural working distance (50-80cm equivalent).\n" +
+        "The COMPLETE plate/bowl must be visible -- ALL edges and rims showing -- with GENEROUS empty surface around it on every side.\n\n" +
+        "AREA TARGET: dish+plate = roughly 40-55% of total frame area. The remaining 45-60% is styled surface, small props in negative space, and breathing room.\n\n" +
+        "This is NOT a close-up.\n" +
+        "This is NOT tight framing.\n" +
+        "This is a PULLED-BACK, composed, editorial food shot where the dish lives INSIDE a scene.\n\n" +
+        "HARD FAILURES (any one = redo the image):\n" +
+        "  X  Plate rim cropped, touching, or closer than 8% of frame width from ANY frame edge\n" +
+        "  X  Food + plate fills more than 60% of the frame area\n" +
+        "  X  No visible styled surface/background margin on any side\n" +
+        "  X  Image looks like a phone held directly over the plate (flat, tight, claustrophobic)\n" +
+        "  X  Top or bottom of the plate is cut off" +
+        zoomOutBlock,
       wider:
-        "FRAMING — WIDER / MORE CONTEXT: Pull further back than balanced commercial — ~45–60% of frame on dish+plate, with generous table, surface, or styled negative space for headlines and UI. Still show the full vessel; never awkward partial crops. " +
-        antiMacro,
+        "FRAMING -- WIDER / EDITORIAL WITH SPACE:\n\n" +
+        "Even further back than balanced commercial. Dish+plate = roughly 30-45% of frame area.\n" +
+        "Show generous table surface, styled environment, ample room for text/headlines/UI.\n" +
+        "The full plate must be visible (all rims) with LARGE margins on EVERY side.\n" +
+        "Think: magazine spread or banner ad where food is one element in a composed scene." +
+        zoomOutBlock,
       tight:
-        "FRAMING — TIGHTER MENU HERO: Dish-forward for thumbnail impact — roughly ~65–80% of frame on dish+plate — but STILL keep the full rim of the vessel visible (or nearly so on one forgiving edge). No extreme macro; no multi-edge rim clipping; utensil tips should not be awkwardly severed. " +
-        antiMacro,
+        "FRAMING -- TIGHTER HERO (menu thumbnail):\n\n" +
+        "Closer than balanced commercial -- dish+plate at roughly 55-70% of frame -- but STILL NOT a macro.\n" +
+        "The COMPLETE plate rim must be visible on ALL sides, just with less margin than commercial.\n" +
+        "There MUST still be visible surface/background around the plate.\n\n" +
+        "HARD FAILURE: plate rim touching or cut off on even ONE side = too close, pull back." +
+        zoomOutBlock,
       match_angle:
-        "FRAMING — MATCH CAMERA ANGLE, FIX DISTANCE: Preserve the base photo’s camera language (top-down stays top-down; ¾ stays ¾). However, if the source framing is too tight, BACK THE VIRTUAL CAMERA OUT until the composition matches balanced commercial distance — full vessel, comfortable margins, ad-ready. Do not change angle family into a different one. " +
-        antiMacro
+        "FRAMING -- MATCH ANGLE, FIX DISTANCE:\n\n" +
+        "Keep the camera angle from the base (top-down stays top-down; 3/4 stays 3/4; eye-level stays eye-level).\n" +
+        "But REGARDLESS of the base photo zoom, adjust to BALANCED COMMERCIAL distance:\n" +
+        "full plate visible, all rims showing, generous margin, 40-55% of frame on dish+plate.\n" +
+        "If the base was a tight phone shot, pull WAY back while keeping the same angle." +
+        zoomOutBlock
     };
     return map[id] || map.commercial;
   }
