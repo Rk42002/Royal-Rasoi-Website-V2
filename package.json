@@ -1,0 +1,12 @@
+{
+  "name": "food-image-prompt-generation-tool",
+  "private": true,
+  "description": "Static prompt builder for food image editing — served for Railway / local preview",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "PORT=3000 node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

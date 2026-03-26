@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Food Image Edit — Prompt Builder</title>
+  <style>
+    :root {
+      --bg: #faf7f2;
+      --surface: #ffffff;
+      --text: #1c1917;
+      --muted: #57534e;
+      --accent: #c2410c;
+      --accent-soft: #fff7ed;
+      --border: #e7e5e4;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(28, 25, 23, 0.08);
+      --font: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 3rem;
+    }
+
+    header {
+      margin-bottom: 1.75rem;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.35rem;
+    }
+
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .progress {
+      display: flex;
+      gap: 0.35rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .progress span {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.35rem 0.6rem;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .progress span.active {
+      background: var(--accent-soft);
+      border-color: #fed7aa;
+      color: var(--accent);
+    }
+
+    .progress span.done {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+      color: #047857;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.35rem;
+      box-shadow: var(--shadow);
+    }
+
+    .panel h2 {
+      font-size: 1.05rem;
+      margin: 0 0 1rem;
+      font-weight: 650;
+    }
+
+    .hint {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin: -0.5rem 0 1rem;
+    }
+
+    label.lbl {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+      color: var(--text);
+    }
+
+    input[type="text"],
+    input[type="number"],
+    textarea {
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font: inherit;
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    input:focus,
+    textarea:focus {
+      outline: 2px solid #fdba74;
+      outline-offset: 1px;
+      border-color: #fb923c;
+    }
+
+    .upload-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .thumb {
+      width: 120px;
+      height: 120px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      display: none;
+    }
+
+    .thumb.visible {
+      display: block;
+    }
+
+    .grid {
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    @media (min-width: 520px) {
+      .grid.cols-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .option {
+      position: relative;
+    }
+
+    .option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .option label.card {
+      display: block;
+      padding: 0.75rem 0.85rem;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      font-size: 0.9rem;
+    }
+
+    .option label.card strong {
+      display: block;
+      font-size: 0.92rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .option label.card small {
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.35;
+    }
+
+    .option input:focus-visible + label.card {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .option input:checked + label.card {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .checks label.card {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      cursor: pointer;
+    }
+
+    .checks input {
+      margin-top: 0.2rem;
+      width: 1.1rem;
+      height: 1.1rem;
+      accent-color: var(--accent);
+    }
+
+    .sub {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px dashed var(--border);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 1.35rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+      border-radius: 10px;
+      padding: 0.65rem 1.15rem;
+      font-weight: 600;
+      border: none;
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    button.primary:hover {
+      background: #9a3412;
+    }
+
+    button.secondary {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    button.secondary:hover {
+      background: var(--bg);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .output-wrap {
+      margin-top: 1.5rem;
+    }
+
+    .output-wrap h3 {
+      font-size: 1rem;
+      margin: 0 0 0.5rem;
+    }
+
+    pre#out {
+      margin: 0;
+      padding: 1rem;
+      background: #1c1917;
+      color: #e7e5e4;
+      border-radius: 10px;
+      font-size: 0.78rem;
+      line-height: 1.45;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    .actions button.primary.outline {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid #fdba74;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 1.25rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(120%);
+      background: var(--text);
+      color: #fff;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      opacity: 0;
+      transition: transform 0.25s, opacity 0.25s;
+      z-index: 100;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .file-note {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.35rem;
+    }
+
+    select {
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font: inherit;
+      background: #fff;
+    }
+
+    select:focus {
+      outline: 2px solid #fdba74;
+      outline-offset: 1px;
+      border-color: #fb923c;
+    }
+
+    textarea.desc-loading {
+      opacity: 0.88;
+      cursor: wait;
+    }
+
+    details.api-setup {
+      margin: 1rem 0 0.5rem;
+      font-size: 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.65rem 0.85rem;
+      background: var(--bg);
+    }
+
+    details.api-setup summary {
+      cursor: pointer;
+      font-weight: 650;
+      color: var(--accent);
+    }
+
+    details.api-setup summary::-webkit-details-marker {
+      margin-right: 0.35rem;
+    }
+
+    details.api-setup a {
+      color: var(--accent);
+    }
+
+    .readiness-panel {
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px dashed var(--border);
+    }
+
+    .readiness-panel h3 {
+      font-size: 0.95rem;
+      margin: 0 0 0.5rem;
+      font-weight: 650;
+    }
+
+    pre#readinessOut {
+      margin: 0.5rem 0 0;
+      padding: 1rem;
+      background: #1e293b;
+      color: #e2e8f0;
+      border-radius: 10px;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 2.5rem;
+    }
+
+    pre#readinessOut:empty::before {
+      content: "Readiness notes will appear here after you run a review.";
+      color: #94a3b8;
+      font-style: italic;
+    }
+
+    pre#readinessOut.loading {
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Food image edit — prompt builder</h1>
+      <p>Walk through each step, then generate a detailed prompt for <strong>Gemini</strong> (and other editors). Defaults target a <strong>snapshot → pro studio shoot</strong> lift — art-directed surface, soft directional light, breathing room around the dish, tactile detail, and strong perceived quality from modest-resolution sources. Use Step 4’s <strong>reference style</strong> upload to pin a benchmark look (e.g. dark slate, campaign lighting).</p>
+    </header>
+
+    <div class="progress" id="progress" aria-hidden="true"></div>
+
+    <form id="form" novalidate>
+      <!-- Step 1 -->
+      <section class="panel step" data-step="0">
+        <h2>Step 1 — Base image</h2>
+        <p class="hint">Upload a photo — a <strong>draft description</strong> is filled in automatically when a Gemini API key is saved (you can edit it). Without a key, type the description yourself.</p>
+        <div class="upload-row">
+          <div>
+            <label class="lbl" for="baseFile">Upload base image</label>
+            <input type="file" id="baseFile" accept="image/*" />
+            <button type="button" class="secondary" id="btnRedoDescribe" style="margin-top:0.45rem;width:100%">
+              Re-run auto-description on this file
+            </button>
+            <p class="file-note">Thumbnail is local only. Auto-description calls Google’s Gemini API from your browser (key stays in this browser).</p>
+          </div>
+          <img id="baseThumb" class="thumb" alt="Base image preview" />
+        </div>
+        <details class="api-setup">
+          <summary>Auto-description — Gemini API key (optional)</summary>
+          <p class="hint" style="margin:0.5rem 0 0.75rem">Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>. It is stored in <code>localStorage</code> on this device only.</p>
+          <label class="lbl" for="geminiKey">API key</label>
+          <input type="password" id="geminiKey" autocomplete="off" placeholder="AIza…" />
+          <div class="grid cols-2" style="margin-top:0.75rem">
+            <div>
+              <label class="lbl" for="geminiModel">Model</label>
+              <select id="geminiModel">
+                <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite</option>
+                <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+              </select>
+            </div>
+            <div style="display:flex;align-items:flex-end;padding-bottom:1px">
+              <button type="button" class="secondary" id="btnSaveKey" style="width:100%">Save key &amp; model</button>
+            </div>
+          </div>
+          <p class="file-note" style="margin:0.5rem 0 0">If auto-describe fails, open this page over <code>http://localhost</code> (some browsers block API calls from <code>file://</code>).</p>
+        </details>
+        <label class="lbl" for="baseDesc">Description of the base image <span style="color:#b91c1c">*</span></label>
+        <textarea id="baseDesc" required placeholder="Upload an image to auto-fill (with API key), or type manually…"></textarea>
+      </section>
+
+      <!-- Step 2 — Framing -->
+      <section class="panel step hidden" data-step="1">
+        <h2>Step 2 — Framing &amp; camera distance</h2>
+        <p class="hint">Defaults favor <strong>ad-ready working distance</strong> — full dish visible, breathing room, not a macro crop. Tight phone shots get “opened up” unless you explicitly choose a tighter hero. The prompt also <strong>mandates a studio-grade finish</strong> (art-directed surface &amp; light).</p>
+        <div class="grid" id="framingGrid"></div>
+      </section>
+
+      <!-- Step 3 -->
+      <section class="panel step hidden" data-step="2">
+        <h2>Step 3 — Platform &amp; dimensions</h2>
+        <p class="hint">What is this image for?</p>
+        <div class="grid" id="platformGrid"></div>
+        <div id="presetWrap" class="sub hidden">
+          <label class="lbl" id="presetLabel">Choose a preset</label>
+          <div class="grid" id="presetGrid"></div>
+        </div>
+        <div id="customDims" class="sub hidden">
+          <div class="grid cols-2">
+            <div>
+              <label class="lbl" for="cw">Width (px)</label>
+              <input type="number" id="cw" min="1" step="1" placeholder="1080" />
+            </div>
+            <div>
+              <label class="lbl" for="ch">Height (px)</label>
+              <input type="number" id="ch" min="1" step="1" placeholder="1080" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 4 -->
+      <section class="panel step hidden" data-step="3">
+        <h2>Step 4 — Background &amp; styling</h2>
+        <p class="hint">Choose <strong>Rustic &amp; artisan</strong> or <strong>Premium / luxury</strong>, then optionally add notes below. Generated prompts always include <strong>anti-clutter</strong> rules so backgrounds stay ad-readable.</p>
+        <div class="grid" id="vibeGrid"></div>
+        <div class="sub">
+          <label class="lbl" for="bgTailoring">Extra background &amp; styling notes <span style="color:#57534e;font-weight:500">(optional — works with any preset)</span></label>
+          <p class="hint" style="margin-top:0">Add brand colors, surface tweaks, extra props, “match our last campaign,” regional cues, etc. This is merged on top of your preset choice.</p>
+          <textarea id="bgTailoring" placeholder="e.g. Matte black slate instead of white; a small copper bowl on the left; keep greens minimal; match brand #FF5722 accents in napkins only…"></textarea>
+        </div>
+        <div class="sub">
+          <label class="lbl" for="refFile">Reference / sample image for the look (optional)</label>
+          <input type="file" id="refFile" accept="image/*" />
+          <div class="upload-row" style="margin-top:0.75rem">
+            <img id="refThumb" class="thumb" alt="Reference preview" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 5 -->
+      <section class="panel step hidden" data-step="4">
+        <h2>Step 5 — Cutlery &amp; plating</h2>
+        <p class="hint">“Keep vessel + utensils” locks only the <strong>plate/bowl and the same fork/spoon/knife</strong> — table, background, and light can still become studio-grade.</p>
+        <div class="grid" id="cutleryGrid"></div>
+      </section>
+
+      <!-- Step 6 -->
+      <section class="panel step hidden" data-step="5">
+        <h2>Step 6 — Enhancements</h2>
+        <p class="hint">Pick any that apply (multi-select). Every generated prompt already asks for a <strong>clear, sharp-looking</strong> deliverable at the target size; tick “Extra clarity” if you know the source is soft or low-res.</p>
+        <div class="grid checks" id="enhanceGrid"></div>
+      </section>
+
+      <!-- Step 7 -->
+      <section class="panel step hidden" data-step="6">
+        <h2>Step 7 — Lighting</h2>
+        <div class="grid" id="lightGrid"></div>
+      </section>
+
+      <!-- Step 8 -->
+      <section class="panel step hidden" data-step="7">
+        <h2>Step 8 — Anything else</h2>
+        <p class="hint">Brand colors, text to overlay, dietary tags, props, angle changes…</p>
+        <textarea id="additional" placeholder="Optional."></textarea>
+      </section>
+
+      <!-- Result -->
+      <section class="panel step hidden" data-step="8">
+        <h2>Your prompt</h2>
+        <p class="hint">Paste into Gemini (with images attached) or any image editor. The block below is written for maximum clarity and control.</p>
+        <pre id="out"></pre>
+        <div class="actions">
+          <button type="button" class="primary" id="btnCopy">Copy to clipboard</button>
+          <button type="button" class="primary outline" id="btnDownload">Download .txt</button>
+        </div>
+        <div class="readiness-panel">
+          <h3>Prompt readiness review (Gemini)</h3>
+          <p class="hint" style="margin-top:0">
+            Uses your saved API key from Step 1. Sends this page’s <strong>generated prompt</strong> plus your <strong>base image</strong> (if still selected) to Gemini for a quick sanity check — clutter risk, contradictions, and whether you’re ready to run the edit.
+          </p>
+          <button type="button" class="secondary" id="btnReadiness" style="margin-top:0.35rem">
+            Run readiness review
+          </button>
+          <pre id="readinessOut" aria-live="polite"></pre>
+        </div>
+      </section>
+
+      <div class="nav">
+        <button type="button" class="secondary" id="btnBack" disabled>Back</button>
+        <button type="button" class="primary" id="btnNext">Next</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="toast" id="toast" role="status">Copied</div>
+
+  <script>
+(function () {
+  const PLATFORMS = {
+    swiggy: {
+      label: "Swiggy",
+      presets: [
+        { id: "banner", name: "Banner", w: 1200, h: 800 },
+        { id: "square", name: "Square", w: 600, h: 600 },
+        { id: "story", name: "Story", w: 1080, h: 1350 }
+      ]
+    },
+    zomato: {
+      label: "Zomato",
+      presets: [
+        { id: "cover", name: "Cover", w: 1200, h: 800 },
+        { id: "menu", name: "Menu item", w: 600, h: 600 },
+        { id: "post", name: "Post", w: 1080, h: 1080 }
+      ]
+    },
+    instagram: {
+      label: "Instagram",
+      presets: [
+        { id: "post", name: "Post", w: 1080, h: 1080 },
+        { id: "portrait", name: "Portrait", w: 1080, h: 1350 },
+        { id: "story", name: "Story / Reel", w: 1080, h: 1920 }
+      ]
+    },
+    facebook: {
+      label: "Facebook",
+      presets: [
+        { id: "post", name: "Post", w: 1200, h: 630 },
+        { id: "square", name: "Square", w: 1080, h: 1080 },
+        { id: "story", name: "Story", w: 1080, h: 1920 }
+      ]
+    },
+    custom: { label: "Custom", presets: null }
+  };
+
+  const VIBES = [
+    { id: "rustic", name: "Rustic & artisan", desc: "Wood, earthy textures, burlap, terracotta." },
+    { id: "premium", name: "Premium / luxury", desc: "Dark moody background, marble, gold accents, dramatic light." }
+  ];
+
+  const CUTLERY = [
+    { id: "keep", name: "Keep vessel + same utensils", desc: "Same plate/bowl and same fork, spoon, knife as shown — scene & surface may change." },
+    { id: "remove", name: "Remove cutlery", desc: "Dish only — no utensils." },
+    { id: "western", name: "Minimal western", desc: "Simple fork and knife." },
+    { id: "indian", name: "Indian style", desc: "Steel thali / katori / banana leaf as appropriate." },
+    { id: "branded", name: "Premium / branded", desc: "Ceramic plates, elegant presentation." }
+  ];
+
+  const ENHANCE = [
+    { id: "garnish", label: "Enhance garnishing (fresher herbs/toppings)" },
+    { id: "steam", label: "Add steam / heat effect" },
+    { id: "sauce", label: "Add sauce drizzle or glaze" },
+    { id: "color", label: "Color correction only (no compositional change)" },
+    { id: "textspace", label: "Add text overlay space (clean area for text/logo)" },
+    { id: "clarity", label: "Extra clarity & crisp detail (soft / low-res sources)" }
+  ];
+
+  const LIGHT = [
+    { id: "natural", name: "Natural daylight", desc: "Bright, airy." },
+    { id: "warm", name: "Warm & cozy", desc: "Golden tones." },
+    { id: "clinical", name: "Bright & clinical", desc: "Clean high-key — good for menus." },
+    { id: "moody", name: "Moody & dramatic", desc: "Dark, directional light." },
+    { id: "original", name: "Keep original lighting", desc: "Preserve the photo’s existing light." }
+  ];
+
+  const FRAMING = [
+    {
+      id: "commercial",
+      name: "Balanced — commercial / studio distance (recommended)",
+      desc: "Full plate & food visible with comfortable margin; not macro-tight; campaign default."
+    },
+    {
+      id: "wider",
+      name: "Wider — more table & negative space",
+      desc: "Further back for headlines, logos, and UI; generous breathing room."
+    },
+    {
+      id: "tight",
+      name: "Tighter hero (menu style)",
+      desc: "Dish-forward but keep full vessel plausible; do not crop plate rims on multiple sides."
+    },
+    {
+      id: "match_angle",
+      name: "Match base angle — fix distance only",
+      desc: "Keep top-down vs ¾ vs eye-level, but if source is too close, back up to commercial distance."
+    }
+  ];
+
+  function gcd(a, b) {
+    return b === 0 ? a : gcd(b, a % b);
+  }
+
+  function aspectLabel(w, h) {
+    const g = gcd(w, h);
+    const rw = w / g;
+    const rh = h / g;
+    const dec = (w / h).toFixed(4);
+    return `${rw}:${rh} (≈ ${dec}:1)`;
+  }
+
+  function framingInstruction(id) {
+    const zoomOutBlock =
+      "\n\n*** ZOOM-OUT HARD RULE (MANDATORY -- READ BEFORE GENERATING) ***\n" +
+      "AI image models have a STRONG bias toward filling the frame with food. You MUST actively fight this.\n\n" +
+      "SELF-CHECK -- run these 4 tests BEFORE finalizing:\n" +
+      "  1. PLATE RIM TEST: Can you see the ENTIRE plate/bowl rim on ALL FOUR sides with ZERO cropping? If any rim is cut off or touching the edge -> ZOOM OUT MORE.\n" +
+      "  2. MARGIN TEST: Is there visible table/surface/background around the plate on EVERY side -- at MINIMUM 15-20% of the frame width as margin? If not -> ZOOM OUT MORE.\n" +
+      "  3. PHONE-DISTANCE TEST: Does it look like a phone held 15cm from the food? If yes -> ZOOM OUT. It should look like a camera at 50-80cm.\n" +
+      "  4. HEADLINE TEST: Could a designer place a headline in the negative space WITHOUT overlapping food? If not -> ZOOM OUT MORE.\n\n" +
+      "Mental model: the plate is an object ON a surface. You are photographing the SCENE -- not performing macro surgery on the food.\n" +
+      "The #1 most common failure is making the image TOO ZOOMED IN. When in doubt, ALWAYS choose MORE distance, MORE breathing room, MORE visible surface.\n" +
+      "If you think you have enough room -- add 10-15% more. Seriously.\n" +
+      "***";
+
+    const map = {
+      commercial:
+        "FRAMING -- BALANCED COMMERCIAL / STUDIO DISTANCE (DEFAULT):\n\n" +
+        "Simulate a professional food photographer at a natural working distance (50-80cm equivalent).\n" +
+        "The COMPLETE plate/bowl must be visible -- ALL edges and rims showing -- with GENEROUS empty surface around it on every side.\n\n" +
+        "AREA TARGET: dish+plate = roughly 40-55% of total frame area. The remaining 45-60% is styled surface, small props in negative space, and breathing room.\n\n" +
+        "This is NOT a close-up.\n" +
+        "This is NOT tight framing.\n" +
+        "This is a PULLED-BACK, composed, editorial food shot where the dish lives INSIDE a scene.\n\n" +
+        "HARD FAILURES (any one = redo the image):\n" +
+        "  X  Plate rim cropped, touching, or closer than 8% of frame width from ANY frame edge\n" +
+        "  X  Food + plate fills more than 60% of the frame area\n" +
+        "  X  No visible styled surface/background margin on any side\n" +
+        "  X  Image looks like a phone held directly over the plate (flat, tight, claustrophobic)\n" +
+        "  X  Top or bottom of the plate is cut off" +
+        zoomOutBlock,
+      wider:
+        "FRAMING -- WIDER / EDITORIAL WITH SPACE:\n\n" +
+        "Even further back than balanced commercial. Dish+plate = roughly 30-45% of frame area.\n" +
+        "Show generous table surface, styled environment, ample room for text/headlines/UI.\n" +
+        "The full plate must be visible (all rims) with LARGE margins on EVERY side.\n" +
+        "Think: magazine spread or banner ad where food is one element in a composed scene." +
+        zoomOutBlock,
+      tight:
+        "FRAMING -- TIGHTER HERO (menu thumbnail):\n\n" +
+        "Closer than balanced commercial -- dish+plate at roughly 55-70% of frame -- but STILL NOT a macro.\n" +
+        "The COMPLETE plate rim must be visible on ALL sides, just with less margin than commercial.\n" +
+        "There MUST still be visible surface/background around the plate.\n\n" +
+        "HARD FAILURE: plate rim touching or cut off on even ONE side = too close, pull back." +
+        zoomOutBlock,
+      match_angle:
+        "FRAMING -- MATCH ANGLE, FIX DISTANCE:\n\n" +
+        "Keep the camera angle from the base (top-down stays top-down; 3/4 stays 3/4; eye-level stays eye-level).\n" +
+        "But REGARDLESS of the base photo zoom, adjust to BALANCED COMMERCIAL distance:\n" +
+        "full plate visible, all rims showing, generous margin, 40-55% of frame on dish+plate.\n" +
+        "If the base was a tight phone shot, pull WAY back while keeping the same angle." +
+        zoomOutBlock
+    };
+    return map[id] || map.commercial;
+  }
+
+  const LS_GEMINI_KEY = "food_prompt_gemini_key";
+  const LS_GEMINI_MODEL = "food_prompt_gemini_model";
+
+  const DESCRIBE_PROMPT =
+    "You are assisting with food and restaurant photo editing. Look at the image and write a factual description (not marketing copy) that an image editor can use as ground truth.\n\n" +
+    "Write 4–8 short sentences covering:\n" +
+    "- What the dish or food is (ingredients visible, cuisine if obvious)\n" +
+    "- Plating and containers (plate, bowl, leaf, packaging, etc.)\n" +
+    "- Camera angle and framing (how much of the frame the food fills; top-down vs three-quarter vs eye-level if clear)\n" +
+    "- Setting / background (table surface, restaurant interior, outdoor, plain backdrop, etc.)\n" +
+    "- Lighting quality and direction if visible (warm, cool, soft, harsh, window side-light, overhead, etc.)\n" +
+    "- Visible cutlery, napkins, hands, steam, condensation, or branded items\n\n" +
+    "Use plain, specific language. Write as a single paragraph or flowing prose — no bullet points. " +
+    "Do not suggest edits or improvements — only describe what is actually visible.";
+
+  function showToastMsg(msg, ms) {
+    const toast = document.getElementById("toast");
+    toast.textContent = msg;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), ms || 2000);
+  }
+
+  function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + chunk, bytes.length)));
+    }
+    return btoa(binary);
+  }
+
+  async function prepareImageForGemini(file) {
+    const bitmap = await createImageBitmap(file);
+    const maxDim = 1536;
+    let w = bitmap.width;
+    let h = bitmap.height;
+    if (w > maxDim || h > maxDim) {
+      const s = maxDim / Math.max(w, h);
+      w = Math.round(w * s);
+      h = Math.round(h * s);
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close();
+    const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.88));
+    if (!blob) throw new Error("Could not encode image");
+    const buf = await blob.arrayBuffer();
+    return { mime_type: "image/jpeg", data: arrayBufferToBase64(buf) };
+  }
+
+  async function callGeminiGenerate(parts, apiKey, model, signal, maxOutputTokens) {
+    const url =
+      "https://generativelanguage.googleapis.com/v1beta/models/" +
+      encodeURIComponent(model) +
+      ":generateContent?key=" +
+      encodeURIComponent(apiKey);
+    const body = {
+      contents: [{ parts }],
+      generationConfig: {
+        temperature: 0.35,
+        maxOutputTokens: maxOutputTokens || 1024
+      }
+    };
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const errMsg = data.error?.message || res.status + " " + res.statusText;
+      throw new Error(errMsg);
+    }
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) {
+      const br = data.promptFeedback?.blockReason;
+      if (br) throw new Error("Blocked: " + br);
+      throw new Error("No text in API response");
+    }
+    return text.trim();
+  }
+
+  async function fetchGeminiDescription(inlinePart, apiKey, model, signal) {
+    return callGeminiGenerate([{ text: DESCRIBE_PROMPT }, { inline_data: inlinePart }], apiKey, model, signal, 1024);
+  }
+
+  const READINESS_PROMPT =
+    "You advise on food/restaurant photo editing workflows. The user generated a long MASTER PROMPT for an AI image editor (Gemini-class). " +
+    "They may attach the BASE food photo for visual context.\n\n" +
+    "Evaluate how READY they are to run this edit successfully. Consider: framing/working distance (macro-tight vs commercial margin), whether the prompt demands pro studio transformation tier vs leaving a casual snapshot, commercial studio finish vs snapshot look, background clutter vs anti-clutter instructions, " +
+    "possible contradictions (e.g. keep restaurant vs simplify), festive density, output aspect ratio, food-integrity rules, output clarity/sharpness vs soft or low-res sources, and missing details.\n\n" +
+    "Respond in EXACTLY this Markdown structure (use the headings):\n\n" +
+    "## Overall readiness (1–10)\n" +
+    "One line: score and a short reason.\n\n" +
+    "## Visual / photo (only if image provided)\n" +
+    "Bullets on clutter, resolution/sharpness, exposure, focus, angle, compression artifacts, or issues that could hurt the edit. If no image, write: _(No image provided — text-only review.)_\n\n" +
+    "## Prompt / instruction risks\n" +
+    "Bullets: contradictions, vague spots, or things that might confuse the model.\n\n" +
+    "## Recommendations\n" +
+    "3–6 concrete bullets to improve outcome (prompt tweaks or photo choices).\n\n" +
+    "## Safe to proceed?\n" +
+    "One of: **Yes** / **Mostly** / **Not yet** — plus one sentence.\n\n" +
+    "Be concise and practical. Do not repeat the entire user prompt back.";
+
+  let readinessAbort = null;
+
+  async function runReadinessReview() {
+    const apiKey = (document.getElementById("geminiKey").value || localStorage.getItem(LS_GEMINI_KEY) || "").trim();
+    const model = document.getElementById("geminiModel").value || "gemini-2.0-flash";
+    const outEl = document.getElementById("readinessOut");
+    const btn = document.getElementById("btnReadiness");
+
+    if (!apiKey) {
+      alert("Add your Gemini API key in Step 1 (expand “Auto-description”) and click Save key & model.");
+      return;
+    }
+
+    const promptText = document.getElementById("out").textContent.trim();
+    if (!promptText) {
+      alert("No generated prompt found. Complete the wizard and generate the prompt first.");
+      return;
+    }
+
+    const baseFile = document.getElementById("baseFile").files[0];
+
+    if (readinessAbort) readinessAbort.abort();
+    readinessAbort = new AbortController();
+    const signal = readinessAbort.signal;
+
+    btn.disabled = true;
+    outEl.classList.add("loading");
+    outEl.textContent = "Calling Gemini…";
+
+    try {
+      const parts = [
+        {
+          text:
+            READINESS_PROMPT +
+            "\n\n--- USER GENERATED PROMPT (FULL TEXT) ---\n\n" +
+            promptText +
+            (baseFile ? "\n\n(Image of the base photo is attached below.)" : "\n\n(No image bytes attached — review text only.)")
+        }
+      ];
+      if (baseFile) {
+        const inlinePart = await prepareImageForGemini(baseFile);
+        if (signal.aborted) return;
+        parts.push({ inline_data: inlinePart });
+      }
+
+      const result = await callGeminiGenerate(parts, apiKey, model, signal, 2048);
+      if (signal.aborted) return;
+      outEl.textContent = result;
+      showToastMsg("Readiness review ready.", 2200);
+    } catch (err) {
+      if (signal.aborted || err.name === "AbortError") return;
+      outEl.textContent = "";
+      alert("Readiness review failed: " + (err.message || err));
+    } finally {
+      if (!signal.aborted) {
+        outEl.classList.remove("loading");
+        btn.disabled = false;
+      }
+    }
+  }
+
+  let describeAbort = null;
+
+  async function describeUploadedFile(file) {
+    if (!file || !file.type.startsWith("image/")) return;
+    const ta = document.getElementById("baseDesc");
+    const apiKey = (document.getElementById("geminiKey").value || localStorage.getItem(LS_GEMINI_KEY) || "").trim();
+    const model = document.getElementById("geminiModel").value || "gemini-2.0-flash";
+    if (!apiKey) {
+      showToastMsg("Add and save a Gemini API key above to auto-fill the description.", 4200);
+      return;
+    }
+    if (describeAbort) describeAbort.abort();
+    describeAbort = new AbortController();
+    const signal = describeAbort.signal;
+    const previous = ta.value.trim();
+    ta.readOnly = true;
+    ta.classList.add("desc-loading");
+    ta.value = "Analyzing your photo…";
+    try {
+      const inlinePart = await prepareImageForGemini(file);
+      if (signal.aborted) return;
+      const desc = await fetchGeminiDescription(inlinePart, apiKey, model, signal);
+      if (signal.aborted) return;
+      ta.value = desc;
+      showToastMsg("Description added — edit anytime.", 2600);
+    } catch (err) {
+      if (signal.aborted || err.name === "AbortError") return;
+      ta.value = previous || "";
+      alert(
+        (err.message || String(err)) +
+          "\n\nYou can type the description manually. If the browser blocked the request, open this HTML via a local server (e.g. npx serve) instead of file://."
+      );
+    } finally {
+      if (!signal.aborted) {
+        ta.readOnly = false;
+        ta.classList.remove("desc-loading");
+      }
+    }
+  }
+
+  function backgroundInstruction(vibeId) {
+    const guard = " Maintain photorealism; no illustrated or plastic look.";
+    const clutterNote =
+      " Apply global anti-clutter rules from the COMPOSITION section: fewer competing objects, calmer margins, hero dish clearly dominant.";
+    switch (vibeId) {
+      case "rustic":
+        return (
+          "Rustic surfaces: weathered wood, burlap, terracotta, earthy tones — but keep the tabletop SIMPLE. " +
+          "Avoid stacking many textures and knick-knacks; one or two honest material stories beat a cluttered farmhouse pile." +
+          guard +
+          clutterNote
+        );
+      case "premium":
+        return (
+          "Premium look: dark or muted moody background, possible marble or stone, subtle gold or metallic accents only where believable. " +
+          "Editorial negative space; no busy patterns fighting the plate. Fine-dining restraint — dramatic light, minimal competing objects." +
+          guard +
+          clutterNote
+        );
+      default:
+        return (
+          "Rustic surfaces: weathered wood, burlap, terracotta, earthy tones — but keep the tabletop SIMPLE. " +
+          "Avoid stacking many textures and knick-knacks; one or two honest material stories beat a cluttered farmhouse pile." +
+          guard +
+          clutterNote
+        );
+    }
+  }
+
+  function cutleryInstruction(id) {
+    const map = {
+      keep:
+        "CUTLERY LOCK — VESSEL + UTENSILS ONLY: Keep the SAME serving vessel (plate, bowl, platter, etc.) and the SAME visible utensils (fork, spoon, knife as shown — same metal/ceramic, relative arrangement on the plate). " +
+        "You MAY change everything else: table surface, background, scene props, lighting, and grading — only the dishware identity and utensil identity stay tied to the base. Do not swap in different plateware or different fork/spoon models. Food placement on the plate follows FOOD INTEGRITY rules.",
+      remove: "Remove all utensils from the frame. Show only the dish and surface; no forks, knives, or spoons.",
+      western: "Present with minimal Western service: simple fork and knife placed naturally if not already present; otherwise adjust to this style without clutter.",
+      indian: "Use Indian-style service where appropriate: steel thali, katori, or banana leaf presentation; match cuisine context.",
+      branded: "Premium presentation: quality ceramic or branded-appropriate plateware, elegant spacing and refined styling."
+    };
+    return map[id] || map.keep;
+  }
+
+  function lightingInstruction(id) {
+    const map = {
+      natural: "Natural daylight: soft bright key, airy fill, gentle shadows. Slight clarity boost; appetizing but true-to-life.",
+      warm: "Warm & cozy: golden-hour tone, soft shadows, subtle warm color grade for appetite appeal.",
+      clinical: "Bright clinical / high-key: even soft lighting, minimal harsh shadow, very clean — ideal for delivery menu thumbnails.",
+      moody: "Moody & dramatic: directional light (e.g. from top-left), deeper shadows, controlled highlights, editorial contrast.",
+      original:
+        "Honor the source lighting mood and direction, but REFINE to studio-grade execution: reduce harsh flat overhead / snapshot glare, balance highlights and fill, add gentle sculpting — final image must not read as a cheap phone grab even when the mood stays similar."
+    };
+    return map[id] || map.original;
+  }
+
+  function enhancementLines(selectedIds) {
+    const byId = Object.fromEntries(ENHANCE.map((e) => [e.id, e.label]));
+    if (!selectedIds.length) {
+      return "None selected — apply only global color/light/background changes needed for consistency; still follow OUTPUT CLARITY & SHARPNESS (below). Do not add steam, extra garnish, or sauce unless implied by the scene.";
+    }
+    return selectedIds
+      .map((id) => {
+        switch (id) {
+          case "garnish":
+            return "Enhance garnishes slightly so herbs and toppings look fresher; do not invent ingredients.";
+          case "steam":
+            return "Add a subtle, realistic steam or heat shimmer suggesting the dish is freshly cooked.";
+          case "sauce":
+            return "Add or refine a light sauce drizzle or glaze where it fits the dish; keep it believable.";
+          case "color":
+            return "Color correction and exposure only — no crop, no reframing, no new objects.";
+          case "textspace":
+            return "Leave a clean, uncluttered area (e.g. margin or negative space) suitable for text or logo overlay.";
+          case "clarity":
+            return "Extra emphasis on clarity: source may be soft or low-res — apply upscale-aware treatment with stronger (but still natural) edge and texture recovery on the hero food; prioritize legibility at full OUTPUT dimensions; avoid mushy interpolation and avoid halo oversharpening.";
+          default:
+            return byId[id] || id;
+        }
+      })
+      .map((line, i) => `${i + 1}. ${line}`)
+      .join("\n");
+  }
+
+  const STEPS = 8;
+  let current = 0;
+
+  const progressEl = document.getElementById("progress");
+  const steps = Array.from(document.querySelectorAll(".step"));
+  const btnBack = document.getElementById("btnBack");
+  const btnNext = document.getElementById("btnNext");
+  const form = document.getElementById("form");
+
+  let platform = "instagram";
+  let presetId = "post";
+  let vibe = "rustic";
+  let cutlery = "keep";
+  let light = "warm";
+  let framing = "commercial";
+
+  function renderProgress() {
+    const labels = ["Image", "Frame", "Size", "Style", "Plating", "FX", "Light", "Extra", "Done"];
+    progressEl.innerHTML = labels
+      .map((l, i) => {
+        let cls = "";
+        if (i < current) cls = "done";
+        else if (i === current) cls = "active";
+        return `<span class="${cls}">${i + 1}. ${l}</span>`;
+      })
+      .join("");
+  }
+
+  function showStep(n) {
+    current = n;
+    steps.forEach((el, i) => {
+      el.classList.toggle("hidden", i !== n);
+    });
+    btnBack.disabled = n === 0;
+    if (n === STEPS) {
+      btnNext.textContent = "Start over";
+      btnNext.classList.remove("primary");
+      btnNext.classList.add("secondary");
+    } else {
+      btnNext.textContent = n === STEPS - 1 ? "Generate prompt" : "Next";
+      btnNext.classList.add("primary");
+      btnNext.classList.remove("secondary");
+    }
+    renderProgress();
+    if (n === STEPS) buildOutput();
+  }
+
+  function validateStep(n) {
+    if (n === 0) {
+      const d = document.getElementById("baseDesc").value.trim();
+      if (d.length < 8) {
+        alert("Please describe your base image in a bit more detail (at least a short paragraph).");
+        document.getElementById("baseDesc").focus();
+        return false;
+      }
+    }
+    if (n === 2) {
+      if (platform === "custom") {
+        const w = parseInt(document.getElementById("cw").value, 10);
+        const h = parseInt(document.getElementById("ch").value, 10);
+        if (!w || !h || w < 1 || h < 1) {
+          alert("Enter valid width and height in pixels for Custom.");
+          return false;
+        }
+      } else if (!presetId) {
+        alert("Choose a dimension preset.");
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function getDimensions() {
+    if (platform === "custom") {
+      const w = parseInt(document.getElementById("cw").value, 10);
+      const h = parseInt(document.getElementById("ch").value, 10);
+      return { w, h, label: `Custom ${w}×${h}` };
+    }
+    const p = PLATFORMS[platform];
+    const pr = p.presets.find((x) => x.id === presetId) || p.presets[0];
+    return { w: pr.w, h: pr.h, label: `${p.label} — ${pr.name}` };
+  }
+
+  function buildOutput() {
+    const baseDesc = document.getElementById("baseDesc").value.trim();
+    const dim = getDimensions();
+    const bgTailoring = document.getElementById("bgTailoring").value.trim();
+    const additional = document.getElementById("additional").value.trim();
+
+    const baseFile = document.getElementById("baseFile").files[0];
+    const refFile = document.getElementById("refFile").files[0];
+
+    const enhanceIds = ENHANCE.filter((e) => document.getElementById("en_" + e.id).checked).map((e) => e.id);
+
+    const vibeMeta = VIBES.find((v) => v.id === vibe);
+    const vibeName = vibeMeta ? vibeMeta.name : vibe;
+    const frameMeta = FRAMING.find((f) => f.id === framing);
+    const frameName = frameMeta ? frameMeta.name : framing;
+
+    const presetInstructions = backgroundInstruction(vibe);
+    const tailoringInstructions = bgTailoring
+      ? `USER TAILORING (combine with preset — use for brand/ad specifics; if anything conflicts with the preset, blend them; never sacrifice photorealism or food integrity; do not use tailoring to bring back dense clutter unless the user explicitly wants a busy frame):\n${bgTailoring}`
+      : "USER TAILORING: None — follow the preset and COMPOSITION / anti-clutter instructions only.";
+
+    const bg = `SELECTED PRESET: ${vibeName}
+
+${presetInstructions}
+
+${tailoringInstructions}`;
+
+    const cut = cutleryInstruction(cutlery);
+    const foodDesc = baseDesc.length > 2500 ? baseDesc.slice(0, 2500) + "…" : baseDesc;
+    const foodBlock =
+      `Treat the following as ground truth for what must NOT be reinvented:\n${foodDesc}\n\n` +
+      "The food itself — every grain, leaf, bubble, char mark, and sauce edge visible in the base image — must remain the same real dish. " +
+      "Do not regenerate, re-draw, substitute, or “beautify” the food into a different meal. No plastic gloss, no hyper-smooth sauces, no fake symmetry. " +
+      "PLATE LAYOUT: If pieces are jammed in an unreadable clump (e.g. protein touching in a tight stack), you may add subtle professional spacing between the SAME items — same count, marinade, char, and identity — small believable gaps for hero legibility only, not a new arrangement of different food. " +
+      "You may adjust global scene treatments (background, props, lighting, grading) around the food; optional restrained hero styling (small chutney bowl, scattered microgreens in negative space) is allowed when it matches cuisine and TARGET TRANSFORMATION STANDARD. " +
+      "WATERMARKS: Remove phone/camera “shot on…” watermarks and UI overlays from the final unless ADDITIONAL explicitly asks to keep them.";
+
+    const refLine = refFile
+      ? "A separate REFERENCE IMAGE is supplied: match its overall styling direction — palette, surface materials, and mood — while keeping the food identity locked to the BASE IMAGE. If the reference itself looks overcrowded, borrow mood and color, NOT prop count — stay sparser than the reference when in doubt. Do not copy unrelated dishes."
+      : "No separate reference image — rely on text instructions only.";
+
+    const assetsNote =
+      (baseFile ? `\n[Attach as BASE IMAGE: ${baseFile.name}]` : "\n[Attach your base food/restaurant photo as the first image.]") +
+      (refFile ? `\n[Attach as REFERENCE STYLE: ${refFile.name}]` : "");
+
+    const compositionClutter = `=== COMPOSITION, BACKGROUND DENSITY & CLUTTER (ALWAYS APPLY — EVERY PRESET) ===
+These rules stack on top of SCENE, BACKGROUND & STYLING. A busy source photo is a reason to simplify, not to copy clutter at full density.
+
+1. Hero first: the dish must read as the primary subject in ~2 seconds; background and props are supporting cast only.
+2. Anti-clutter default: prefer fewer objects, calmer corners, and at least one quieter margin (even without a text overlay). If the base frame is packed (many diyas, lanterns, petals, plates, patterns), reduce and merge — do not preserve “visual noise” as fidelity.
+3. Styled scenes ≠ maximal: mood comes from light, color, and a small curated set of props — not from every possible decorative object visible in a reference.
+4. Simplification tools: softer background bokeh, removing duplicate place settings, thinning repeated small lights, grouping accents, replacing an overcrowded table with a simpler surface while keeping cuisine and mood honest.
+5. Coherence: USER TAILORING may add brand cues; never let added elements recreate the same density problem the user is trying to escape.`;
+
+    const outputClarity = `=== OUTPUT CLARITY, SHARPNESS & LOW-RES SOURCES (ALWAYS APPLY) ===
+The final image must look CLEAR and appetizing at the target OUTPUT pixel size — including on phone screens and as a small thumbnail — even when the base photo is slightly soft, compressed, or modestly low resolution.
+
+1. Perceived sharpness: recover edge definition and texture on the hero food (plate rim, garnish, protein surface, sauce lines) using natural micro-contrast — not HDR crunch or illustrated outlines.
+2. Low-res / soft sources: treat output as upscale-aware. Avoid mushy, watercolor-smoothed, or over-blended results. Preserve believable fine texture (grains, herbs, char, bubbles) rather than painting them away.
+3. Noise vs detail: light noise reduction is allowed where it helps clarity, but do not turn food into plastic. If the source is noisy, prefer a slight grain structure over waxy blur.
+4. Halos & artifacts: no glowing white/black halos on high-contrast edges; no global “sharpen slider to max.” Any sharpening must be subtle and local to plausible detail.
+5. Depth of field: respect real bokeh from the source; do not fake razor-sharp everything. If the entire frame is uniformly soft, improve overall acuity modestly — do not invent fake micro-detail that never existed.
+6. Delivery check: at ${dim.w}×${dim.h} px, the hero dish should read as crisp and intentional — not a smeary rescale — unless the user explicitly asked for a soft dreamlike look in ADDITIONAL.`;
+
+    const commercialStudioFinish = `=== COMMERCIAL & STUDIO FINISH (MANDATORY — QUALITY BAR) ===
+Unless USER TAILORING or ADDITIONAL explicitly demands a raw, documentary look, the output MUST read as intentional commercial / studio-grade food photography — never a harsh amateur snapshot.
+
+1. Working distance: hero vessel fully visible with comfortable margin (see FRAMING). No claustrophobic macro; no plate rims cropped off multiple sides.
+2. Background & surface: art-directed — seamless sweep, tasteful wood/stone/linen/textile, soft gradient, or believably graded environment with depth. Avoid the accidental “flat grey restaurant table + overhead glare” snapshot aesthetic unless the user explicitly wants authentic casual-dining realism over polish.
+3. Lighting: intentional key + fill — soft directional or window-quality light, appetizing speculars, gentle shadows; tone down flat overhead phone-flash energy.
+4. One coherent world: surface, props, and dish share the same lighting logic and finish quality.
+5. Always suitable for brand, delivery, or paid social — campaign-minded polish is the default.`;
+
+    const targetTransformationStandard = `=== TARGET TRANSFORMATION STANDARD (ALL DELIVERABLES) ===
+Every output should match the quality tier of a strong “casual base photo → pro studio campaign” transformation — the default bar, not an optional upgrade.
+
+INTENT (typical jump):
+• FROM: flat or harsh phone/overhead snap energy, busy casual table (e.g. patterned placemat, stray plates), tight snapshot framing, noise or softness, possible device watermark.  
+• TO: art-directed dark or neutral textured surface (slate, stone, linen, seamless sweep), soft directional key light (often ~10:30) with gentle shadow falloff and depth, tactile detail preserved or recovered (char, moisture, salt, onion threads, ribbed plate texture), appetite-led speculars — not blown highlights. Optional restrained props in negative space (small chutney bowl, lemon/salt pinch, scattered microgreens or seeds) that fit the cuisine — curated, not cluttered.
+
+VISUAL LANGUAGE: lean into real materials — matte vs glossy, craggy stone or weave, ribbed ceramics — never waxy uniformity or “AI sheen.”
+
+LOW-RES BASES: The “TO” state must still read publication-ready at OUTPUT dimensions — lean hard on OUTPUT CLARITY (upscale-aware recovery) so quality feels like your best pro shot, not a mushy enlargement.
+
+REFERENCE IMAGE: If a REFERENCE STYLE image is attached, treat it as the quality and mood benchmark (lighting ratio, surface darkness/texture, prop restraint) while keeping food identity from the BASE image.`;
+
+    const standing = `=== STANDING QUALITY BAR (ALWAYS APPLY) ===
+
+1. Photoreal food only: no illustration, CGI plastic, wax shine, or “AI sheen.”
+2. Restaurant / dining scenes: keep venue identity when requested, but de-clutter — do not treat “keep restaurant” as “keep every stray object.”
+3. Final image must read as a professional real photograph — believable optics, sensor noise where appropriate, natural depth.
+4. Preserve organic imperfections (crumbs, irregular herbs) on the food — over-perfection reads fake.
+5. Any added props must match cuisine context and sit in the same light as everything else.
+6. One coherent light rig — shadow direction and highlight logic must match across subjects.
+7. No text, watermarks, or logos unless explicitly requested in ADDITIONAL or USER TAILORING.
+8. Ad-readable backgrounds: avoid cluttered, wall-to-wall busyness; background must not compete with the dish (see COMPOSITION section above).
+9. If the uploaded photo is already overcrowded, simplify the scene — do not “preserve clutter” as if it were sacred.
+10. Clarity at output size: deliver a clear, legible result at the stated dimensions; if the source is low-res, upscale and refine intelligently — sharp where it should be sharp, never a blurry or watercolor mush (see OUTPUT CLARITY section).
+11. Commercial studio finish: art-directed surface and light — not a thoughtless phone snapshot (see COMMERCIAL & STUDIO FINISH section).
+12. Target transformation tier: deliver at least the “pro studio campaign” standard in TARGET TRANSFORMATION STANDARD — including from modest-resolution sources when clarity rules are applied.`;
+
+    const negatives = `=== NEGATIVE CONSTRAINTS (DO NOT) ===
+
+- Do NOT change the identity of the dish or invent new ingredients.
+- Do NOT add brand logos, QR codes, or promotional text unless the user explicitly asked.
+- Do NOT apply beauty-filter skin-smoothing aesthetics to food.
+- Do NOT mix multiple conflicting light sources (e.g. hard sun + soft studio) without a believable reason.
+- Do NOT crop or reframe in a way that contradicts FRAMING & CAMERA unless OUTPUT DIMENSIONS require minimal adjustment — then preserve intent.
+- Do NOT reproduce an extremely busy tablescape at full density when the goal is a clean, festive-hero, or ad-ready look — simplify.
+- Do NOT add more decorative objects than the preset, COMPOSITION rules, and USER TAILORING justify; default to “less is more.”
+- Do NOT deliver a uniformly soft, mushy, or watercolor-blurred final image when plausible clarity and texture recovery would better serve the ad — especially for low-res sources.
+- Do NOT apply heavy global sharpening that creates halos, crunchy edges, or obvious “AI sharpen” artifacts.
+- Do NOT deliver an extreme macro crop or multi-edge cropped plate rim when FRAMING calls for commercial or balanced distance — open up the shot.
+- Do NOT leave a flat, accidental snapshot background and lighting when the brief implies polished commercial food work — unless the user explicitly asked for unstyled realism.
+- Do NOT leave phone/camera watermarks or “shot on…” branding in the final unless explicitly requested.
+- Do NOT output a result that feels like an unimproved snapshot when the brief implies studio-tier polish — meet TARGET TRANSFORMATION STANDARD.`;
+
+    const checklist = `=== MODEL CHECKLIST (VERIFY BEFORE FINALIZING) ===
+
+☐ Food pixels: same meal, same plating logic as base — not a newly generated dish.
+☐ Framing: matches "${frameName}" intent; full vessel readable; comfortable margins — not macro-claustrophobic.
+☐ Studio finish: background/surface and lighting read art-directed / campaign-grade (unless user asked for raw realism).
+☐ Transformation tier: reads like pro studio food work (directional soft light, textured/controlled surface, tactile food detail) per TARGET TRANSFORMATION STANDARD — not the casual base left unlifted.
+☐ Clarity: at ${dim.w}×${dim.h} px the hero reads sharp and clear enough for mobile/thumbnail; no mushy upscale; no halo sharpening (low-res bases still deliver premium perceived quality).
+☐ No stray watermarks unless user asked to keep them.
+☐ Clutter: background is calmer and more readable than a chaotic snapshot; hero dish clearly dominates.
+☐ Background: preset + COMPOSITION rules + USER TAILORING merged without contradictions.
+☐ Lighting: consistent; matches selected lighting mood.
+☐ Edges: no halos, no cutout look, no mismatched noise between subject and background.`;
+
+    const text =
+      `=== GEMINI / MULTIMODAL IMAGE EDIT — MASTER PROMPT ===
+(Optimized for Google Gemini image-capable models: attach images in the same order as noted below, then paste this entire block.)
+
+--- HOW TO USE WITH GEMINI ---
+1. Upload BASE IMAGE first${refFile ? "; upload REFERENCE STYLE second if you have one." : "."}
+2. Paste this full prompt in the text field.
+3. If your tool supports “edit image” vs “generate,” choose EDIT / transform of the uploaded base.
+4. Request output at ${dim.w}×${dim.h} px (or closest supported size), aspect ${aspectLabel(dim.w, dim.h)}.
+
+--- ROLE ---
+You are a senior food photographer and retoucher. Your task is to EDIT the supplied base photograph into a campaign-ready frame while preserving the real food as captured — with the default quality bar of a full “snapshot → pro studio shoot” lift (dark/neutral textured surfaces, soft directional light, tactile detail, publication-ready clarity even from modest-resolution phones unless the user requests raw realism). You prioritize realism, appetite appeal, brand-safe composition, COMMERCIAL working distance (not macro phone-tight), CLEAR output at the target resolution, and STUDIO-GRADE finish — never an accidental snapshot. You actively avoid cluttered, ad-unfriendly backgrounds: simplify busy scenes unless the user explicitly wants maximal set-dressing.
+
+--- OUTPUT SPECS ---
+PIXEL SIZE: ${dim.w} × ${dim.h} px
+ASPECT RATIO: ${aspectLabel(dim.w, dim.h)}
+TARGET USE / PLATFORM: ${dim.label}
+ASSET INTENT: Single deliverable suitable for paid social, delivery-app listings, or print-ready use at the stated pixel dimensions. The result must look crisp and intentional at typical viewing sizes — not soft or smeared — unless ADDITIONAL explicitly requests a soft aesthetic.
+
+${outputClarity}
+
+--- BASE IMAGE (USER DESCRIPTION) ---
+${baseDesc}${assetsNote}
+
+--- FRAMING & CAMERA (SELECTED: ${frameName}) ---
+${framingInstruction(framing)}
+
+Implementation notes: If OUTPUT DIMENSIONS differ from the base aspect ratio, letterbox or crop intelligently — prioritize the hero dish; never squish or stretch unnaturally. When in doubt, preserve appetite appeal and horizon/plate geometry.
+
+${commercialStudioFinish}
+
+${targetTransformationStandard}
+
+${compositionClutter}
+
+--- SCENE, BACKGROUND & STYLING ---
+(See COMPOSITION above — background instructions below must be interpreted together with anti-clutter rules.)
+
+${bg}
+
+--- CUTLERY, PLATING & SERVING ---
+${cut}
+
+--- FOOD INTEGRITY (NON-NEGOTIABLE) ---
+${foodBlock}
+
+--- ENHANCEMENTS & FINISHING ---
+${enhancementLines(enhanceIds)}
+
+--- LIGHTING DIRECTION ---
+${lightingInstruction(light)}
+Detail: Match key-to-fill ratio to the selected mood; keep specular highlights on wet/glossy foods believable (not mirror-white blobs). Final output must still satisfy OUTPUT CLARITY & SHARPNESS above (crisp at target size, no mushy upscale).
+
+--- ADDITIONAL USER NOTES ---
+${additional || "None."}
+
+--- REFERENCE IMAGE POLICY ---
+${refLine}
+
+${negatives}
+
+${standing}
+
+${checklist}
+
+--- LEGACY SHORT HEADER (optional paste-in helpers) ---
+OUTPUT: ${dim.w}×${dim.h} px · ${dim.label} · Frame: ${frameName} · Style: ${vibeName} · Pro studio transformation tier + balanced distance (mandatory unless user requested raw realism)`;
+
+    document.getElementById("out").textContent = text;
+  }
+
+  function renderPlatformGrid() {
+    const grid = document.getElementById("platformGrid");
+    grid.innerHTML = Object.keys(PLATFORMS)
+      .map((key) => {
+        const p = PLATFORMS[key];
+        const checked = key === platform ? "checked" : "";
+        return `<div class="option">
+          <input type="radio" name="platform" id="pf_${key}" value="${key}" ${checked} />
+          <label class="card" for="pf_${key}"><strong>${p.label}</strong><small>${p.presets ? "Choose a preset next." : "Enter width × height in pixels."}</small></label>
+        </div>`;
+      })
+      .join("");
+    grid.querySelectorAll('input[name="platform"]').forEach((r) => {
+      r.addEventListener("change", () => {
+        platform = r.value;
+        syncPresetUI();
+      });
+    });
+  }
+
+  function syncPresetUI() {
+    const presetWrap = document.getElementById("presetWrap");
+    const customDims = document.getElementById("customDims");
+    const p = PLATFORMS[platform];
+    if (platform === "custom") {
+      presetWrap.classList.add("hidden");
+      customDims.classList.remove("hidden");
+      return;
+    }
+    customDims.classList.add("hidden");
+    presetWrap.classList.remove("hidden");
+    const grid = document.getElementById("presetGrid");
+    grid.innerHTML = p.presets
+      .map((pr) => {
+        const checked = pr.id === presetId ? "checked" : "";
+        return `<div class="option">
+          <input type="radio" name="preset" id="ps_${pr.id}" value="${pr.id}" ${checked} />
+          <label class="card" for="ps_${pr.id}"><strong>${pr.name}</strong><small>${pr.w}×${pr.h} px</small></label>
+        </div>`;
+      })
+      .join("");
+    if (!p.presets.some((x) => x.id === presetId)) presetId = p.presets[0].id;
+    grid.querySelectorAll('input[name="preset"]').forEach((r) => {
+      r.addEventListener("change", () => {
+        presetId = r.value;
+      });
+    });
+  }
+
+  function renderVibeGrid() {
+    const grid = document.getElementById("vibeGrid");
+    grid.innerHTML = VIBES.map((v) => {
+      const checked = v.id === vibe ? "checked" : "";
+      return `<div class="option">
+        <input type="radio" name="vibe" id="vb_${v.id}" value="${v.id}" ${checked} />
+        <label class="card" for="vb_${v.id}"><strong>${v.name}</strong><small>${v.desc}</small></label>
+      </div>`;
+    }).join("");
+    grid.querySelectorAll('input[name="vibe"]').forEach((r) => {
+      r.addEventListener("change", () => {
+        vibe = r.value;
+      });
+    });
+  }
+
+  function renderFramingGrid() {
+    const grid = document.getElementById("framingGrid");
+    grid.innerHTML = FRAMING.map((f) => {
+      const checked = f.id === framing ? "checked" : "";
+      return `<div class="option">
+        <input type="radio" name="framing" id="fr_${f.id}" value="${f.id}" ${checked} />
+        <label class="card" for="fr_${f.id}"><strong>${f.name}</strong><small>${f.desc}</small></label>
+      </div>`;
+    }).join("");
+    grid.querySelectorAll('input[name="framing"]').forEach((r) => {
+      r.addEventListener("change", () => {
+        framing = r.value;
+      });
+    });
+  }
+
+  function renderCutleryGrid() {
+    const grid = document.getElementById("cutleryGrid");
+    grid.innerHTML = CUTLERY.map((c) => {
+      const checked = c.id === cutlery ? "checked" : "";
+      return `<div class="option">
+        <input type="radio" name="cutlery" id="cu_${c.id}" value="${c.id}" ${checked} />
+        <label class="card" for="cu_${c.id}"><strong>${c.name}</strong><small>${c.desc}</small></label>
+      </div>`;
+    }).join("");
+    grid.querySelectorAll('input[name="cutlery"]').forEach((r) => {
+      r.addEventListener("change", () => {
+        cutlery = r.value;
+      });
+    });
+  }
+
+  function renderEnhanceGrid() {
+    const grid = document.getElementById("enhanceGrid");
+    grid.innerHTML = ENHANCE.map(
+      (e) =>
+        `<label class="card" for="en_${e.id}">
+          <input type="checkbox" id="en_${e.id}" />
+          <span>${e.label}</span>
+        </label>`
+    ).join("");
+  }
+
+  function renderLightGrid() {
+    const grid = document.getElementById("lightGrid");
+    grid.innerHTML = LIGHT.map((L) => {
+      const checked = L.id === light ? "checked" : "";
+      return `<div class="option">
+        <input type="radio" name="light" id="lg_${L.id}" value="${L.id}" ${checked} />
+        <label class="card" for="lg_${L.id}"><strong>${L.name}</strong><small>${L.desc}</small></label>
+      </div>`;
+    }).join("");
+    grid.querySelectorAll('input[name="light"]').forEach((r) => {
+      r.addEventListener("change", () => {
+        light = r.value;
+      });
+    });
+  }
+
+  document.getElementById("baseFile").addEventListener("change", async (e) => {
+    const f = e.target.files[0];
+    const img = document.getElementById("baseThumb");
+    if (!f) {
+      img.classList.remove("visible");
+      img.removeAttribute("src");
+      return;
+    }
+    img.src = URL.createObjectURL(f);
+    img.classList.add("visible");
+
+    const apiKey = (document.getElementById("geminiKey").value || localStorage.getItem(LS_GEMINI_KEY) || "").trim();
+    if (!apiKey) {
+      showToastMsg("Tip: save a Gemini API key above, then use “Re-run” or upload again to auto-fill.", 4500);
+      return;
+    }
+    await describeUploadedFile(f);
+  });
+
+  document.getElementById("btnRedoDescribe").addEventListener("click", () => {
+    const f = document.getElementById("baseFile").files[0];
+    if (!f) {
+      alert("Choose an image file first.");
+      return;
+    }
+    describeUploadedFile(f);
+  });
+
+  document.getElementById("refFile").addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    const img = document.getElementById("refThumb");
+    if (!f) {
+      img.classList.remove("visible");
+      img.removeAttribute("src");
+      return;
+    }
+    img.src = URL.createObjectURL(f);
+    img.classList.add("visible");
+  });
+
+  btnNext.addEventListener("click", () => {
+    if (current === STEPS) {
+      showStep(0);
+      return;
+    }
+    if (!validateStep(current)) return;
+    if (current === STEPS - 1) showStep(STEPS);
+    else showStep(current + 1);
+  });
+
+  btnBack.addEventListener("click", () => {
+    if (current > 0) showStep(current - 1);
+  });
+
+  document.getElementById("btnCopy").addEventListener("click", async () => {
+    const t = document.getElementById("out").textContent;
+    try {
+      await navigator.clipboard.writeText(t);
+      showToastMsg("Copied.", 2000);
+    } catch {
+      alert("Could not copy — select the text manually.");
+    }
+  });
+
+  document.getElementById("geminiKey").value = localStorage.getItem(LS_GEMINI_KEY) || "";
+  const _savedModel = localStorage.getItem(LS_GEMINI_MODEL);
+  if (_savedModel) {
+    const _sel = document.getElementById("geminiModel");
+    if ([..._sel.options].some((o) => o.value === _savedModel)) _sel.value = _savedModel;
+  }
+
+  document.getElementById("btnSaveKey").addEventListener("click", () => {
+    const k = document.getElementById("geminiKey").value.trim();
+    const m = document.getElementById("geminiModel").value;
+    if (k) localStorage.setItem(LS_GEMINI_KEY, k);
+    else localStorage.removeItem(LS_GEMINI_KEY);
+    localStorage.setItem(LS_GEMINI_MODEL, m);
+    showToastMsg(k ? "Saved key and model in this browser." : "API key cleared; model preference kept.", 2800);
+    const f = document.getElementById("baseFile").files[0];
+    if (k && f) describeUploadedFile(f);
+  });
+
+  document.getElementById("btnDownload").addEventListener("click", () => {
+    const t = document.getElementById("out").textContent;
+    const blob = new Blob([t], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "food-image-edit-prompt.txt";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  document.getElementById("btnReadiness").addEventListener("click", () => {
+    runReadinessReview();
+  });
+
+  renderPlatformGrid();
+  syncPresetUI();
+  renderFramingGrid();
+  renderVibeGrid();
+  renderCutleryGrid();
+  renderEnhanceGrid();
+  renderLightGrid();
+  renderProgress();
+})();
+  </script>
+</body>
+</html>
