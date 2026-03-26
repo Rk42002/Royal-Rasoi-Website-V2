@@ -381,6 +381,42 @@
     details.api-setup a {
       color: var(--accent);
     }
+
+    .readiness-panel {
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px dashed var(--border);
+    }
+
+    .readiness-panel h3 {
+      font-size: 0.95rem;
+      margin: 0 0 0.5rem;
+      font-weight: 650;
+    }
+
+    pre#readinessOut {
+      margin: 0.5rem 0 0;
+      padding: 1rem;
+      background: #1e293b;
+      color: #e2e8f0;
+      border-radius: 10px;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 2.5rem;
+    }
+
+    pre#readinessOut:empty::before {
+      content: "Readiness notes will appear here after you run a review.";
+      color: #94a3b8;
+      font-style: italic;
+    }
+
+    pre#readinessOut.loading {
+      color: #94a3b8;
+    }
   </style>
 </head>
 <body>
@@ -465,7 +501,7 @@
       <!-- Step 4 -->
       <section class="panel step hidden" data-step="3">
         <h2>Step 4 — Background &amp; styling</h2>
-        <p class="hint">Pick a preset vibe, then optionally add extra notes — presets and your own words combine in the final prompt so the ad matches your brand.</p>
+        <p class="hint">Pick a preset vibe, then optionally add extra notes — presets and your own words combine in the final prompt. Generated prompts always include <strong>anti-clutter</strong> rules so backgrounds stay ad-readable (especially important for festive shots).</p>
         <div class="grid" id="vibeGrid"></div>
         <div id="festiveWrap" class="sub hidden">
           <label class="lbl" for="festiveEvent">Which event or theme?</label>
@@ -499,7 +535,7 @@
       <!-- Step 6 -->
       <section class="panel step hidden" data-step="5">
         <h2>Step 6 — Enhancements</h2>
-        <p class="hint">Pick any that apply (multi-select).</p>
+        <p class="hint">Pick any that apply (multi-select). Every generated prompt already asks for a <strong>clear, sharp-looking</strong> deliverable at the target size; tick “Extra clarity” if you know the source is soft or low-res.</p>
         <div class="grid checks" id="enhanceGrid"></div>
       </section>
 
@@ -524,6 +560,16 @@
         <div class="actions">
           <button type="button" class="primary" id="btnCopy">Copy to clipboard</button>
           <button type="button" class="primary outline" id="btnDownload">Download .txt</button>
+        </div>
+        <div class="readiness-panel">
+          <h3>Prompt readiness review (Gemini)</h3>
+          <p class="hint" style="margin-top:0">
+            Uses your saved API key from Step 1. Sends this page’s <strong>generated prompt</strong> plus your <strong>base image</strong> (if still selected) to Gemini for a quick sanity check — clutter risk, contradictions, and whether you’re ready to run the edit.
+          </p>
+          <button type="button" class="secondary" id="btnReadiness" style="margin-top:0.35rem">
+            Run readiness review
+          </button>
+          <pre id="readinessOut" aria-live="polite"></pre>
         </div>
       </section>
 
@@ -578,7 +624,7 @@
     { id: "clean", name: "Clean & minimal", desc: "White or neutral solid background; dish pops without distraction." },
     { id: "restaurant", name: "Restaurant ambience (keep original)", desc: "Keep the setting; enhance lighting, grade, minor cleanup only." },
     { id: "creative", name: "Creative / social media", desc: "Vibrant styled setup with complementary props (herbs, bowls, napkins, boards)." },
-    { id: "festive", name: "Festive / event", desc: "Season or festival theme — specify which event next." },
+    { id: "festive", name: "Festive / event", desc: "Festival mood with fewer, curated props — not a crowded table. Name the event next." },
     { id: "rustic", name: "Rustic & artisan", desc: "Wood, earthy textures, burlap, terracotta." },
     { id: "premium", name: "Premium / luxury", desc: "Dark moody background, marble, gold accents, dramatic light." },
     { id: "custom", name: "Custom", desc: "You describe exactly what you want." }
@@ -597,7 +643,8 @@
     { id: "steam", label: "Add steam / heat effect" },
     { id: "sauce", label: "Add sauce drizzle or glaze" },
     { id: "color", label: "Color correction only (no compositional change)" },
-    { id: "textspace", label: "Add text overlay space (clean area for text/logo)" }
+    { id: "textspace", label: "Add text overlay space (clean area for text/logo)" },
+    { id: "clarity", label: "Extra clarity & crisp detail (soft / low-res sources)" }
   ];
 
   const LIGHT = [
@@ -695,19 +742,18 @@
     return { mime_type: "image/jpeg", data: arrayBufferToBase64(buf) };
   }
 
-  async function fetchGeminiDescription(inlinePart, apiKey, model, signal) {
+  async function callGeminiGenerate(parts, apiKey, model, signal, maxOutputTokens) {
     const url =
       "https://generativelanguage.googleapis.com/v1beta/models/" +
       encodeURIComponent(model) +
       ":generateContent?key=" +
       encodeURIComponent(apiKey);
     const body = {
-      contents: [
-        {
-          parts: [{ text: DESCRIBE_PROMPT }, { inline_data: inlinePart }]
-        }
-      ],
-      generationConfig: { temperature: 0.35, maxOutputTokens: 1024 }
+      contents: [{ parts }],
+      generationConfig: {
+        temperature: 0.35,
+        maxOutputTokens: maxOutputTokens || 1024
+      }
     };
     const res = await fetch(url, {
       method: "POST",
@@ -724,9 +770,92 @@
     if (!text) {
       const br = data.promptFeedback?.blockReason;
       if (br) throw new Error("Blocked: " + br);
-      throw new Error("No description in API response");
+      throw new Error("No text in API response");
     }
     return text.trim();
+  }
+
+  async function fetchGeminiDescription(inlinePart, apiKey, model, signal) {
+    return callGeminiGenerate([{ text: DESCRIBE_PROMPT }, { inline_data: inlinePart }], apiKey, model, signal, 1024);
+  }
+
+  const READINESS_PROMPT =
+    "You advise on food/restaurant photo editing workflows. The user generated a long MASTER PROMPT for an AI image editor (Gemini-class). " +
+    "They may attach the BASE food photo for visual context.\n\n" +
+    "Evaluate how READY they are to run this edit successfully. Consider: background clutter vs anti-clutter instructions, " +
+    "possible contradictions (e.g. keep restaurant vs simplify), festive density, framing vs output aspect ratio, food-integrity rules, output clarity/sharpness vs soft or low-res sources, and missing details.\n\n" +
+    "Respond in EXACTLY this Markdown structure (use the headings):\n\n" +
+    "## Overall readiness (1–10)\n" +
+    "One line: score and a short reason.\n\n" +
+    "## Visual / photo (only if image provided)\n" +
+    "Bullets on clutter, resolution/sharpness, exposure, focus, angle, compression artifacts, or issues that could hurt the edit. If no image, write: _(No image provided — text-only review.)_\n\n" +
+    "## Prompt / instruction risks\n" +
+    "Bullets: contradictions, vague spots, or things that might confuse the model.\n\n" +
+    "## Recommendations\n" +
+    "3–6 concrete bullets to improve outcome (prompt tweaks or photo choices).\n\n" +
+    "## Safe to proceed?\n" +
+    "One of: **Yes** / **Mostly** / **Not yet** — plus one sentence.\n\n" +
+    "Be concise and practical. Do not repeat the entire user prompt back.";
+
+  let readinessAbort = null;
+
+  async function runReadinessReview() {
+    const apiKey = (document.getElementById("geminiKey").value || localStorage.getItem(LS_GEMINI_KEY) || "").trim();
+    const model = document.getElementById("geminiModel").value || "gemini-2.0-flash";
+    const outEl = document.getElementById("readinessOut");
+    const btn = document.getElementById("btnReadiness");
+
+    if (!apiKey) {
+      alert("Add your Gemini API key in Step 1 (expand “Auto-description”) and click Save key & model.");
+      return;
+    }
+
+    const promptText = document.getElementById("out").textContent.trim();
+    if (!promptText) {
+      alert("No generated prompt found. Complete the wizard and generate the prompt first.");
+      return;
+    }
+
+    const baseFile = document.getElementById("baseFile").files[0];
+
+    if (readinessAbort) readinessAbort.abort();
+    readinessAbort = new AbortController();
+    const signal = readinessAbort.signal;
+
+    btn.disabled = true;
+    outEl.classList.add("loading");
+    outEl.textContent = "Calling Gemini…";
+
+    try {
+      const parts = [
+        {
+          text:
+            READINESS_PROMPT +
+            "\n\n--- USER GENERATED PROMPT (FULL TEXT) ---\n\n" +
+            promptText +
+            (baseFile ? "\n\n(Image of the base photo is attached below.)" : "\n\n(No image bytes attached — review text only.)")
+        }
+      ];
+      if (baseFile) {
+        const inlinePart = await prepareImageForGemini(baseFile);
+        if (signal.aborted) return;
+        parts.push({ inline_data: inlinePart });
+      }
+
+      const result = await callGeminiGenerate(parts, apiKey, model, signal, 2048);
+      if (signal.aborted) return;
+      outEl.textContent = result;
+      showToastMsg("Readiness review ready.", 2200);
+    } catch (err) {
+      if (signal.aborted || err.name === "AbortError") return;
+      outEl.textContent = "";
+      alert("Readiness review failed: " + (err.message || err));
+    } finally {
+      if (!signal.aborted) {
+        outEl.classList.remove("loading");
+        btn.disabled = false;
+      }
+    }
   }
 
   let describeAbort = null;
@@ -772,51 +901,67 @@
   function backgroundInstruction(vibeId, customText, festiveEvent) {
     const t = (customText || "").trim();
     const guard = " Maintain photorealism; no illustrated or plastic look.";
+    const clutterNote =
+      " Apply global anti-clutter rules from the COMPOSITION section: fewer competing objects, calmer margins, hero dish clearly dominant.";
     switch (vibeId) {
       case "clean":
         return (
           "Replace or simplify the background to a clean matte white or neutral solid surface. " +
-          "Subtle soft shadow beneath the plate or dish for depth. No busy props or distractions unless already in frame and kept minimal." +
-          guard
+          "Subtle soft shadow beneath the plate or dish for depth. No busy props, patterns, or duplicate place settings — minimal or zero foreground/background clutter." +
+          guard +
+          clutterNote
         );
       case "restaurant":
         return (
-          "Retain the existing restaurant or dining environment. Only improve lighting balance, color grading, and minor cleanup (dust, crumbs). " +
-          "Do not replace tables, walls, or scenery — enhance, don't rebuild." +
-          guard
+          "Keep the SAME venue identity (architecture, materials, palette, room character) but do NOT preserve a chaotic frame. " +
+          "De-clutter: reduce competing objects in the background (merge distant busyness into softer bokeh, tone down excessive tableware, simplify far edges). " +
+          "Improve lighting balance, color grading, and minor cleanup. Enhance and simplify — do not replace the restaurant with an unrelated set unless the user asked in USER TAILORING." +
+          guard +
+          clutterNote
         );
       case "creative":
         return (
-          "Create a vibrant, styled tabletop: complementary props such as small herb sprigs, spice bowls, folded napkin, or a cutting board where it fits the cuisine. " +
-          "Props must feel natural and not overcrowd the hero dish." +
-          guard
+          "Create a vibrant but CONTROLLED styled tabletop: at most a few complementary props (herbs, one spice bowl, napkin, or board) — never a crowded prop wall. " +
+          "Leave clear negative space and readable margins for ads. Props must feel natural and stay secondary to the hero dish." +
+          guard +
+          clutterNote
         );
       case "festive": {
         const ev = (festiveEvent || "").trim() || "the specified festival or season";
         return (
-          `Themed styling for ${ev}: tasteful decor (e.g. candles, lanterns, seasonal accents) that matches the event without obscuring the food. ` +
-          "Keep realism; avoid cartoonish effects." +
-          guard
+          `FESTIVE / ${ev} — CRITICAL: Do NOT keep an overcrowded festival table from the base image. The reference mood is "${ev}", not “copy every diya, lantern, petal, and duplicate plate from the source.” ` +
+          "Rebuild toward a cleaner, ad-ready scene: (1) Hero dish stays the unmistakable focal point with generous breathing room. " +
+          "(2) Use a SMALL curated set of festive cues — e.g. one or two lanterns OR a few diyas, a light marigold accent or runner — not dozens of competing lights and objects. " +
+          "(3) Prefer a simpler surface (linen, wood, soft gradient, or uncluttered runner) over a packed tablescape. " +
+          "(4) Warm celebratory light, but avoid visual noise from too many competing highlights. " +
+          "(5) If the base is extremely busy, simplify aggressively while staying photoreal and on-theme for " +
+          ev +
+          ". " +
+          "Goal: festive atmosphere + readable composition, not maximal decoration density." +
+          guard +
+          clutterNote
         );
       }
       case "rustic":
         return (
-          "Use rustic surfaces: weathered wood, burlap, terracotta, earthy tones. " +
-          "Textures should be photorealistic and appropriate to cafes, bakeries, or artisanal brands." +
-          guard
+          "Rustic surfaces: weathered wood, burlap, terracotta, earthy tones — but keep the tabletop SIMPLE. " +
+          "Avoid stacking many textures and knick-knacks; one or two honest material stories beat a cluttered farmhouse pile." +
+          guard +
+          clutterNote
         );
       case "premium":
         return (
-          "Premium look: dark or muted moody background, possible marble or stone surface, subtle gold or metallic accents only if believable. " +
-          "Dramatic but coherent lighting — fine-dining editorial style." +
-          guard
+          "Premium look: dark or muted moody background, possible marble or stone, subtle gold or metallic accents only where believable. " +
+          "Editorial negative space; no busy patterns fighting the plate. Fine-dining restraint — dramatic light, minimal competing objects." +
+          guard +
+          clutterNote
         );
       case "custom":
         return t
-          ? `User-specified styling (follow as primary art direction; keep wording intent):\n${t}\n\nGuardrails: photorealistic only; physically plausible surfaces and props; no illustrated or plastic look; no text or logos unless requested in ADDITIONAL.`
-          : "Use a neutral professional food-photo treatment. (No custom text provided.)" + guard;
+          ? `User-specified styling (follow as primary art direction; keep wording intent):\n${t}\n\nGuardrails: photorealistic only; physically plausible surfaces and props; avoid gratuitous clutter unless the user explicitly asks for a dense set-dress — default to readable, ad-safe density; no text or logos unless requested in ADDITIONAL.`
+          : "Use a neutral professional food-photo treatment with a clean or gently textured background and minimal props. (No custom text provided.)" + guard + clutterNote;
       default:
-        return "Enhance background appropriately for a professional food photograph." + guard;
+        return "Enhance background for a professional food photograph with a calmer, less cluttered frame than typical snapshots." + guard + clutterNote;
     }
   }
 
@@ -845,7 +990,7 @@
   function enhancementLines(selectedIds) {
     const byId = Object.fromEntries(ENHANCE.map((e) => [e.id, e.label]));
     if (!selectedIds.length) {
-      return "None selected — apply only global color/light/background changes needed for consistency; do not add steam, extra garnish, or sauce unless implied by the scene.";
+      return "None selected — apply only global color/light/background changes needed for consistency; still follow OUTPUT CLARITY & SHARPNESS (below). Do not add steam, extra garnish, or sauce unless implied by the scene.";
     }
     return selectedIds
       .map((id) => {
@@ -860,6 +1005,8 @@
             return "Color correction and exposure only — no crop, no reframing, no new objects.";
           case "textspace":
             return "Leave a clean, uncluttered area (e.g. margin or negative space) suitable for text or logo overlay.";
+          case "clarity":
+            return "Extra emphasis on clarity: source may be soft or low-res — apply upscale-aware treatment with stronger (but still natural) edge and texture recovery on the hero food; prioritize legibility at full OUTPUT dimensions; avoid mushy interpolation and avoid halo oversharpening.";
           default:
             return byId[id] || id;
         }
@@ -983,8 +1130,8 @@
 
     const presetInstructions = backgroundInstruction(vibe, customVibe, festiveEvent);
     const tailoringInstructions = bgTailoring
-      ? `USER TAILORING (combine with preset — use for brand/ad specifics; if anything conflicts with the preset, blend them; never sacrifice photorealism or food integrity):\n${bgTailoring}`
-      : "USER TAILORING: None — follow the preset instructions only.";
+      ? `USER TAILORING (combine with preset — use for brand/ad specifics; if anything conflicts with the preset, blend them; never sacrifice photorealism or food integrity; do not use tailoring to bring back dense clutter unless the user explicitly wants a busy frame):\n${bgTailoring}`
+      : "USER TAILORING: None — follow the preset and COMPOSITION / anti-clutter instructions only.";
 
     const bg = `SELECTED PRESET: ${vibeName}
 
@@ -1001,22 +1148,44 @@ ${tailoringInstructions}`;
       "You may adjust only global scene treatments (background, props, lighting, grading) around the food unless an enhancement explicitly allows a garnish/steam/sauce touch-up that stays physically believable.";
 
     const refLine = refFile
-      ? "A separate REFERENCE IMAGE is supplied: match its overall styling direction — palette, surface materials, prop density, and mood — while keeping the food identity locked to the BASE IMAGE. Prefer texture and lighting language from the reference; do not copy unrelated dishes."
+      ? "A separate REFERENCE IMAGE is supplied: match its overall styling direction — palette, surface materials, and mood — while keeping the food identity locked to the BASE IMAGE. If the reference itself looks overcrowded, borrow mood and color, NOT prop count — stay sparser than the reference when in doubt. Do not copy unrelated dishes."
       : "No separate reference image — rely on text instructions only.";
 
     const assetsNote =
       (baseFile ? `\n[Attach as BASE IMAGE: ${baseFile.name}]` : "\n[Attach your base food/restaurant photo as the first image.]") +
       (refFile ? `\n[Attach as REFERENCE STYLE: ${refFile.name}]` : "");
 
+    const compositionClutter = `=== COMPOSITION, BACKGROUND DENSITY & CLUTTER (ALWAYS APPLY — EVERY PRESET) ===
+These rules stack on top of SCENE, BACKGROUND & STYLING — including Festive / event. A busy source photo is a reason to simplify, not to copy clutter at full density.
+
+1. Hero first: the dish must read as the primary subject in ~2 seconds; background and props are supporting cast only.
+2. Anti-clutter default: prefer fewer objects, calmer corners, and at least one quieter margin (even without a text overlay). If the base frame is packed (many diyas, lanterns, petals, plates, patterns), reduce and merge — do not preserve “visual noise” as fidelity.
+3. Festive ≠ maximal: celebratory mood comes from light, color, and a small curated set of symbols — not from every possible decorative object visible in a reference.
+4. Simplification tools: softer background bokeh, removing duplicate place settings, thinning repeated small lights, grouping accents, replacing an overcrowded table with a simpler surface while keeping cuisine and mood honest.
+5. Coherence: USER TAILORING may add brand cues; never let added elements recreate the same density problem the user is trying to escape.`;
+
+    const outputClarity = `=== OUTPUT CLARITY, SHARPNESS & LOW-RES SOURCES (ALWAYS APPLY) ===
+The final image must look CLEAR and appetizing at the target OUTPUT pixel size — including on phone screens and as a small thumbnail — even when the base photo is slightly soft, compressed, or modestly low resolution.
+
+1. Perceived sharpness: recover edge definition and texture on the hero food (plate rim, garnish, protein surface, sauce lines) using natural micro-contrast — not HDR crunch or illustrated outlines.
+2. Low-res / soft sources: treat output as upscale-aware. Avoid mushy, watercolor-smoothed, or over-blended results. Preserve believable fine texture (grains, herbs, char, bubbles) rather than painting them away.
+3. Noise vs detail: light noise reduction is allowed where it helps clarity, but do not turn food into plastic. If the source is noisy, prefer a slight grain structure over waxy blur.
+4. Halos & artifacts: no glowing white/black halos on high-contrast edges; no global “sharpen slider to max.” Any sharpening must be subtle and local to plausible detail.
+5. Depth of field: respect real bokeh from the source; do not fake razor-sharp everything. If the entire frame is uniformly soft, improve overall acuity modestly — do not invent fake micro-detail that never existed.
+6. Delivery check: at ${dim.w}×${dim.h} px, the hero dish should read as crisp and intentional — not a smeary rescale — unless the user explicitly asked for a soft dreamlike look in ADDITIONAL.`;
+
     const standing = `=== STANDING QUALITY BAR (ALWAYS APPLY) ===
 
 1. Photoreal food only: no illustration, CGI plastic, wax shine, or “AI sheen.”
-2. Restaurant / dining scenes: enhance ambience; do not replace the entire environment with an unrelated set.
+2. Restaurant / dining scenes: keep venue identity when requested, but de-clutter — do not treat “keep restaurant” as “keep every stray object.”
 3. Final image must read as a professional real photograph — believable optics, sensor noise where appropriate, natural depth.
-4. Preserve organic imperfections (crumbs, irregular herbs) — over-perfection reads fake.
+4. Preserve organic imperfections (crumbs, irregular herbs) on the food — over-perfection reads fake.
 5. Any added props must match cuisine context and sit in the same light as everything else.
 6. One coherent light rig — shadow direction and highlight logic must match across subjects.
-7. No text, watermarks, or logos unless explicitly requested in ADDITIONAL or USER TAILORING.`;
+7. No text, watermarks, or logos unless explicitly requested in ADDITIONAL or USER TAILORING.
+8. Ad-readable backgrounds: avoid cluttered, wall-to-wall busyness; background must not compete with the dish (see COMPOSITION section above).
+9. If the uploaded photo is already overcrowded, simplify the scene — do not “preserve clutter” as if it were sacred.
+10. Clarity at output size: deliver a clear, legible result at the stated dimensions; if the source is low-res, upscale and refine intelligently — sharp where it should be sharp, never a blurry or watercolor mush (see OUTPUT CLARITY section).`;
 
     const negatives = `=== NEGATIVE CONSTRAINTS (DO NOT) ===
 
@@ -1024,13 +1193,19 @@ ${tailoringInstructions}`;
 - Do NOT add brand logos, QR codes, or promotional text unless the user explicitly asked.
 - Do NOT apply beauty-filter skin-smoothing aesthetics to food.
 - Do NOT mix multiple conflicting light sources (e.g. hard sun + soft studio) without a believable reason.
-- Do NOT crop or reframe in a way that contradicts FRAMING & CAMERA unless OUTPUT DIMENSIONS require minimal adjustment — then preserve intent.`;
+- Do NOT crop or reframe in a way that contradicts FRAMING & CAMERA unless OUTPUT DIMENSIONS require minimal adjustment — then preserve intent.
+- Do NOT reproduce an extremely busy tablescape at full density when the goal is a clean, festive-hero, or ad-ready look — simplify.
+- Do NOT add more decorative objects than the preset, COMPOSITION rules, and USER TAILORING justify; default to “less is more.”
+- Do NOT deliver a uniformly soft, mushy, or watercolor-blurred final image when plausible clarity and texture recovery would better serve the ad — especially for low-res sources.
+- Do NOT apply heavy global sharpening that creates halos, crunchy edges, or obvious “AI sharpen” artifacts.`;
 
     const checklist = `=== MODEL CHECKLIST (VERIFY BEFORE FINALIZING) ===
 
 ☐ Food pixels: same meal, same plating logic as base — not a newly generated dish.
 ☐ Framing: matches "${frameName}" intent together with safe margins for the chosen platform.
-☐ Background: preset + any USER TAILORING merged without contradictions.
+☐ Clarity: at ${dim.w}×${dim.h} px the hero reads sharp and clear enough for mobile/thumbnail; no mushy upscale; no halo sharpening.
+☐ Clutter: background is calmer and more readable than a chaotic snapshot; hero dish clearly dominates.
+☐ Background: preset + COMPOSITION rules + USER TAILORING merged without contradictions.
 ☐ Lighting: consistent; matches selected lighting mood.
 ☐ Edges: no halos, no cutout look, no mismatched noise between subject and background.`;
 
@@ -1045,13 +1220,15 @@ ${tailoringInstructions}`;
 4. Request output at ${dim.w}×${dim.h} px (or closest supported size), aspect ${aspectLabel(dim.w, dim.h)}.
 
 --- ROLE ---
-You are a senior food photographer and retoucher. Your task is to EDIT the supplied base photograph into a campaign-ready frame while preserving the real food as captured. You prioritize realism, appetite appeal, and brand-safe composition.
+You are a senior food photographer and retoucher. Your task is to EDIT the supplied base photograph into a campaign-ready frame while preserving the real food as captured. You prioritize realism, appetite appeal, brand-safe composition, and a CLEAR final image at the target resolution (including when the source is slightly low-res). You actively avoid cluttered, ad-unfriendly backgrounds: simplify busy scenes unless the user explicitly wants maximal set-dressing.
 
 --- OUTPUT SPECS ---
 PIXEL SIZE: ${dim.w} × ${dim.h} px
 ASPECT RATIO: ${aspectLabel(dim.w, dim.h)}
 TARGET USE / PLATFORM: ${dim.label}
-ASSET INTENT: Single deliverable suitable for paid social, delivery-app listings, or print-ready use at the stated pixel dimensions.
+ASSET INTENT: Single deliverable suitable for paid social, delivery-app listings, or print-ready use at the stated pixel dimensions. The result must look crisp and intentional at typical viewing sizes — not soft or smeared — unless ADDITIONAL explicitly requests a soft aesthetic.
+
+${outputClarity}
 
 --- BASE IMAGE (USER DESCRIPTION) ---
 ${baseDesc}${assetsNote}
@@ -1061,7 +1238,11 @@ ${framingInstruction(framing)}
 
 Implementation notes: If OUTPUT DIMENSIONS differ from the base aspect ratio, letterbox or crop intelligently — prioritize the hero dish; never squish or stretch unnaturally. When in doubt, preserve appetite appeal and horizon/plate geometry.
 
+${compositionClutter}
+
 --- SCENE, BACKGROUND & STYLING ---
+(See COMPOSITION above — background instructions below must be interpreted together with anti-clutter rules.)
+
 ${bg}
 
 --- CUTLERY, PLATING & SERVING ---
@@ -1075,7 +1256,7 @@ ${enhancementLines(enhanceIds)}
 
 --- LIGHTING DIRECTION ---
 ${lightingInstruction(light)}
-Detail: Match key-to-fill ratio to the selected mood; keep specular highlights on wet/glossy foods believable (not mirror-white blobs).
+Detail: Match key-to-fill ratio to the selected mood; keep specular highlights on wet/glossy foods believable (not mirror-white blobs). Final output must still satisfy OUTPUT CLARITY & SHARPNESS above (crisp at target size, no mushy upscale).
 
 --- ADDITIONAL USER NOTES ---
 ${additional || "None."}
@@ -1311,6 +1492,10 @@ OUTPUT: ${dim.w}×${dim.h} px · ${dim.label} · Frame: ${frameName} · Style: $
     a.download = "food-image-edit-prompt.txt";
     a.click();
     URL.revokeObjectURL(a.href);
+  });
+
+  document.getElementById("btnReadiness").addEventListener("click", () => {
+    runReadinessReview();
   });
 
   renderPlatformGrid();
